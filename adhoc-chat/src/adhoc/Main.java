@@ -1,9 +1,11 @@
 package adhoc;
 
+import java.awt.Toolkit;
+
 public class Main {
 
 	public Main() {
-		System.out.println("Hoi ik ben michiel ons project is af");
+		Toolkit.getDefaultToolkit().beep();
 	}
 
 }

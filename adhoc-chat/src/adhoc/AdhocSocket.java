@@ -19,12 +19,16 @@ public class AdhocSocket implements Runnable {
 	
 	public static final byte MULTICAST_ADDRESS = -1;
 	
+	protected static final long TIMEOUT = 10000;
+	
 	private MulticastSocket socket;
 	
 	private ArrayList<AdhocListener> listeners = new ArrayList<AdhocListener>();
+	private ArrayList<Connection> connections = new ArrayList<Connection>();
 	private boolean running = true;
 	private byte address;
 	private final String name;
+	private InetAddress inetAddress;
 	
 	public static void main(String[] args) throws IOException {
 		new AdhocSocket("test");
@@ -35,7 +39,8 @@ public class AdhocSocket implements Runnable {
 		
 		socket = new MulticastSocket(PORT);
 		
-		socket.joinGroup(InetAddress.getByName(ADDRESS));
+		inetAddress = InetAddress.getByName(ADDRESS);
+		socket.joinGroup(inetAddress);
 		
 		new Thread(this).start();
 		
@@ -48,6 +53,8 @@ public class AdhocSocket implements Runnable {
 					} catch (InterruptedException e) {
 					}
 					
+					//send broadcast
+					
 					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 					DataOutputStream dataStream = new DataOutputStream(byteStream);
 					
@@ -57,6 +64,14 @@ public class AdhocSocket implements Runnable {
 						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
 					} catch (IOException e) {
 						e.printStackTrace();
+					}
+					
+					//check removed connections
+					
+					for (Connection connection : connections) {
+						if (System.currentTimeMillis() - connection.lastBroadcast > TIMEOUT) {
+							
+						}
 					}
 				}
 			}
@@ -112,6 +127,23 @@ public class AdhocSocket implements Runnable {
 	}
 	
 	private void handleBroadcast(Packet packet) {
+		Connection connection = getConnection(packet.getSourceAddress());
+		
+		if (connection == null) {
+			connection =
+				new Connection(packet.getSourceAddress(), new String(packet.getData()), System.currentTimeMillis());
+			connections.add(connection);
+		} else {
+			connection.lastBroadcast = System.currentTimeMillis();
+		}
+	}
+	
+	public Connection getConnection(byte address) {
+		for (Connection connection : connections) {
+			if (connection.address == address) return connection;
+		}
+		
+		return null;
 	}
 	
 	public void sendData(byte destAddress, byte packetType, byte[] data) throws IOException {
@@ -128,7 +160,7 @@ public class AdhocSocket implements Runnable {
 		dataStream.write(packetType);
 		dataStream.write(data);
 		
-		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size()));
+		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
 	}
 	
 	public void addListener(AdhocListener listener) {

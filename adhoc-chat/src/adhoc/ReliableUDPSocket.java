@@ -1,9 +1,13 @@
 package adhoc;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import adhoc.AdhocSocket.AdhocListener;
 
@@ -13,7 +17,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 	public ReliableUDPSocket() {
 		try {
-			socket = new AdhocSocket();
+			socket = new AdhocSocket("willem " + new Random().nextInt());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -28,11 +32,14 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 * Add to sending queue
 	 * 
 	 * @param dstAddress
-	 * @param data -- underlying data
+	 * @param data
+	 *            -- underlying data
 	 */
 	public void sendReliable(byte dstAddress, byte[] data) {
-		UdpPacket toBeAcked = new UdpPacket(dstAddress, nextSeqNr++, data);
-		unackedPackets.add(toBeAcked);
+		synchronized (unackedPackets) {
+			UdpPacket toBeAcked = new UdpPacket(dstAddress, nextSeqNr++, data);
+			unackedPackets.add(toBeAcked);
+		}
 	}
 
 	public static void main(String[] args) {
@@ -44,28 +51,59 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public void run() {
 		while (true) {
 			long now = System.currentTimeMillis();
-			for (UdpPacket pair : unackedPackets) {
-				if (pair.shouldSend(now)) {
-					 try {
-					System.out.println(" SEND "+pair.attemptCount);
-					 socket.sendData(pair.dstAddress, pair.data);
-					 pair.onSend();
-					 } catch (IOException e) {
-					 socket.close();
-					 e.printStackTrace();
-					 }
+			synchronized (unackedPackets) {
+				for (UdpPacket packet : unackedPackets) {
+					if (packet.shouldSend(now)) {
+						try {
+							System.out.println("SEND PKT=" + packet.seqNr
+									+ " ATTEMPT=" + packet.attemptCount);
+
+							socket.sendData(packet.dstAddress,
+									AdhocSocket.BROADCAST_TYPE,
+									packet.compileData());
+							packet.onSend();
+						} catch (IOException e) {
+							socket.close();
+							e.printStackTrace();
+						}
+					}
 				}
 			}
 		}
 	}
-	
+
 	@Override
-	public void onReceive(DataInputStream dataInputStream) {
-		synchronized(unackedPackets){
-//			dataInputStream.readByte(); //src
-//			new Pair(dataInputStream.readByte(), )
-//			unackedPackets.remove(index)
+	public void onReceive(Packet packet) {
+
+		// get
+		try {
+			ByteArrayInputStream byteStream = new ByteArrayInputStream(
+					packet.getData());
+			DataInputStream dataStream = new DataInputStream(byteStream);
+
+			int seqNr = dataStream.readInt();
+			// byte[] restData = new byte[dataStream.available()];
+			// int offset = 0;
+			// while(dataStream.available()>0){
+			// dataStream.read(restData, offset, dataStream.available());
+			// }
+
+			// only destinationAddress and seqNr are needed for comparison
+			UdpPacket received = new UdpPacket(packet.getDestAddress(), seqNr,
+					null);
+
+			synchronized (unackedPackets) {
+				boolean success = unackedPackets.remove(received);
+				System.out.println(" Success : " + success);
+			}
+
+		} catch (Exception e) {
+			System.out.println(" NOOOOO !!! :( ");
+			e.printStackTrace();
 		}
+		// dataInputStream.readByte(); //src
+		// new Pair(dataInputStream.readByte(), )
+		// unackedPackets.remove(index)
 	}
 
 	public class UdpPacket {
@@ -84,6 +122,19 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			this.seqNr = seqNr;
 			this.data = data;
 			this.nextAttempt = System.currentTimeMillis();
+		}
+
+		public byte[] compileData() {
+			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+			DataOutputStream dataStream = new DataOutputStream(byteStream);
+			try {
+				dataStream.write(seqNr);
+				dataStream.write(data);
+			} catch (IOException e) {
+				System.out.println(" ERROR COMPILING UDP PACKET! ");
+				e.printStackTrace();
+			}
+			return byteStream.toByteArray();
 		}
 
 		public void onSend() {
@@ -111,6 +162,5 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		}
 
 	}
-
 
 }

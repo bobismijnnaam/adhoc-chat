@@ -68,11 +68,16 @@ public class AdhocSocket implements Runnable {
 					
 					//check removed connections
 					
+					ArrayList<Connection> removals = new ArrayList<Connection>();
+					
 					for (Connection connection : connections) {
 						if (System.currentTimeMillis() - connection.lastBroadcast > TIMEOUT) {
-							
+							System.out.println("removed connection " + connection.address);
+							removals.add(connection);
 						}
 					}
+					
+					connections.removeAll(removals);
 				}
 			}
 		}).start();
@@ -135,6 +140,10 @@ public class AdhocSocket implements Runnable {
 			connection =
 				new Connection(packet.getSourceAddress(), new String(packet.getData()), System.currentTimeMillis());
 			connections.add(connection);
+			
+			for(AdhocListener listener : listeners){
+				listener.newConnection(connection);
+			}
 		} else {
 			connection.lastBroadcast = System.currentTimeMillis();
 		}
@@ -183,5 +192,7 @@ public class AdhocSocket implements Runnable {
 	
 	public interface AdhocListener {
 		public void onReceive(Packet packet);
+		
+		public void newConnection(Connection connection);
 	}
 }

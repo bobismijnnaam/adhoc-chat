@@ -13,19 +13,53 @@ import java.util.ArrayList;
 public class AdhocSocket implements Runnable {
 	private static final String ADDRESS = "224.42.42.42";
 	private static final int PORT = 4001;
+	protected static final long BROADCAST_TIME = 1000;
+	
+	protected static final byte BROADCAST_TYPE = 0;
+	protected static final byte MULTICAST_ADDRESS = -1;
 	
 	private MulticastSocket socket;
 	
 	private ArrayList<AdhocListener> listeners = new ArrayList<AdhocListener>();
 	private boolean running = true;
 	private byte address;
+	private final String name;
 	
-	public AdhocSocket() throws IOException {
+	public static void main(String[] args) throws IOException {
+		new AdhocSocket("test");
+	}
+	
+	public AdhocSocket(final String name) throws IOException {
+		this.name = name;
+		
 		socket = new MulticastSocket(PORT);
 		
 		socket.joinGroup(InetAddress.getByName(ADDRESS));
 		
 		new Thread(this).start();
+		
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (running) {
+					try {
+						Thread.sleep(BROADCAST_TIME);
+					} catch (InterruptedException e) {
+					}
+					
+					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+					DataOutputStream dataStream = new DataOutputStream(byteStream);
+					
+					try {
+						dataStream.writeUTF(name);
+						
+						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
 	}
 	
 	public void run() {
@@ -42,41 +76,48 @@ public class AdhocSocket implements Runnable {
 		}
 	}
 	
-	private void onReceive(byte[] data) throws IOException {
-		ByteArrayInputStream byteStream = new ByteArrayInputStream(data);
+	private void onReceive(byte[] buffer) throws IOException {
+		ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
 		DataInputStream dataStream = new DataInputStream(byteStream);
 		
 		byte source = dataStream.readByte();
 		byte dest = dataStream.readByte();
 		byte hopCount = dataStream.readByte();
+		byte type = dataStream.readByte();
+		
+		byte[] data = new byte[byteStream.available()];
+		dataStream.read(data);
+		
+		Packet packet = new Packet(source, dest, hopCount, type, data);
 		
 		if (dest != address) {
 			if (source != address) {
 				if (hopCount > 0) {
 					hopCount--;
-					sendData(source, dest, hopCount, data);
+					sendData(source, dest, hopCount, type, data);
 				}
 			}
 		} else {
 			if (hopCount == 0) {
 				for (AdhocListener listener : listeners) {
-					listener.onReceive(new DataInputStream(new ByteArrayInputStream(data)));
+					listener.onReceive(packet);
 				}
 			}
 		}
 	}
 	
-	public void sendData(byte destAddress, byte[] data) throws IOException {
-		sendData(address, destAddress, (byte) 64, data);
+	public void sendData(byte destAddress, byte packetType, byte[] data) throws IOException {
+		sendData(address, destAddress, (byte) 8, packetType, data);
 	}
 	
-	public void sendData(byte source, byte destAddress, byte hopCount, byte[] data) throws IOException {
+	public void sendData(byte source, byte destAddress, byte hopCount, byte packetType, byte[] data) throws IOException {
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 		
 		dataStream.write(source);
 		dataStream.write(destAddress);
-		dataStream.write(64);
+		dataStream.write(hopCount);
+		dataStream.write(packetType);
 		dataStream.write(data);
 		
 		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size()));
@@ -99,6 +140,6 @@ public class AdhocSocket implements Runnable {
 	}
 	
 	public interface AdhocListener {
-		public void onReceive(DataInputStream dataInputStream);
+		public void onReceive(Packet packet);
 	}
 }

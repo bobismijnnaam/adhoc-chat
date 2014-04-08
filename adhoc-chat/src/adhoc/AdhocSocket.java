@@ -11,7 +11,7 @@ import java.net.MulticastSocket;
 import java.util.ArrayList;
 
 public class AdhocSocket implements Runnable {
-	private static final String ADDRESS = "224.42.42.42";
+	private static final String ADDRESS = "226.1.2.3";
 	private static final int PORT = 4001;
 	protected static final long BROADCAST_TIME = 1000;
 	
@@ -33,7 +33,6 @@ public class AdhocSocket implements Runnable {
 		this.name = name;
 		
 		socket = new MulticastSocket(PORT);
-		
 		socket.joinGroup(InetAddress.getByName(ADDRESS));
 		
 		new Thread(this).start();

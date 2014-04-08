@@ -15,8 +15,9 @@ public class AdhocSocket implements Runnable {
 	private static final int PORT = 4001;
 	protected static final long BROADCAST_TIME = 1000;
 	
-	protected static final byte BROADCAST_TYPE = 0;
-	protected static final byte MULTICAST_ADDRESS = -1;
+	public static final byte BROADCAST_TYPE = 0;
+	
+	public static final byte MULTICAST_ADDRESS = -1;
 	
 	private MulticastSocket socket;
 	
@@ -95,6 +96,10 @@ public class AdhocSocket implements Runnable {
 				if (hopCount > 0) {
 					hopCount--;
 					sendData(source, dest, hopCount, type, data);
+					
+					if (type == BROADCAST_TYPE) {
+						handleBroadcast(packet);
+					}
 				}
 			}
 		} else {
@@ -104,6 +109,9 @@ public class AdhocSocket implements Runnable {
 				}
 			}
 		}
+	}
+	
+	private void handleBroadcast(Packet packet) {
 	}
 	
 	public void sendData(byte destAddress, byte packetType, byte[] data) throws IOException {

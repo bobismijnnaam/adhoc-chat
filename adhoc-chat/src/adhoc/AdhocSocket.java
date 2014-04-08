@@ -42,11 +42,11 @@ public class AdhocSocket implements Runnable {
 		this.name = name;
 
 		socket = new MulticastSocket(PORT);
-		
+
 		address = getLocalAddress();
-		
+
 		System.out.println("Local address: " + address);
-		
+
 		inetAddress = InetAddress.getByName(ADDRESS);
 		socket.joinGroup(inetAddress);
 
@@ -75,18 +75,20 @@ public class AdhocSocket implements Runnable {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-					
-					//check removed connections
-					
+
+					// check removed connections
+
 					ArrayList<Connection> removals = new ArrayList<Connection>();
-					
+
 					for (Connection connection : connections) {
-						if (System.currentTimeMillis() - connection.lastBroadcast > TIMEOUT) {
-							System.out.println("removed connection " + connection.address);
+						if (System.currentTimeMillis()
+								- connection.lastBroadcast > TIMEOUT) {
+							System.out.println("removed connection "
+									+ connection.address);
 							removals.add(connection);
 						}
 					}
-					
+
 					connections.removeAll(removals);
 				}
 			}
@@ -94,13 +96,15 @@ public class AdhocSocket implements Runnable {
 	}
 
 	private byte getLocalAddress() throws SocketException {
-		Enumeration<InetAddress> addresses = NetworkInterface.getByName("wlan0").getInetAddresses();
-		while(addresses.hasMoreElements()){
+		Enumeration<InetAddress> addresses = NetworkInterface
+				.getByName("wlan0").getInetAddresses();
+		while (addresses.hasMoreElements()) {
 			InetAddress element = addresses.nextElement();
-			
-			if(element instanceof Inet4Address) return ((Inet4Address) element).getAddress()[3];
+
+			if (element instanceof Inet4Address)
+				return ((Inet4Address) element).getAddress()[3];
 		}
-		
+
 		System.out.println("Unable to find local address!");
 		return -1;
 	}
@@ -111,8 +115,11 @@ public class AdhocSocket implements Runnable {
 				byte[] buffer = new byte[1500];
 				DatagramPacket p = new DatagramPacket(buffer, buffer.length);
 				socket.receive(p);
-
-				onReceive(buffer);
+				
+				byte[] data = new byte[p.getLength()];
+				System.arraycopy(buffer, 0, data, 0, p.getLength());
+				
+				onReceive(data);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -120,8 +127,8 @@ public class AdhocSocket implements Runnable {
 	}
 
 	private void onReceive(byte[] buffer) throws IOException {
-		System.out.println("receive");
-		
+		System.out.println("received " + buffer.length);
+
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
 		DataInputStream dataStream = new DataInputStream(byteStream);
 
@@ -147,10 +154,8 @@ public class AdhocSocket implements Runnable {
 				}
 			}
 		} else {
-			if (hopCount == 0) {
-				for (AdhocListener listener : listeners) {
-					listener.onReceive(packet);
-				}
+			for (AdhocListener listener : listeners) {
+				listener.onReceive(packet);
 			}
 		}
 	}
@@ -162,8 +167,8 @@ public class AdhocSocket implements Runnable {
 			connection = new Connection(packet.getSourceAddress(), new String(
 					packet.getData()), System.currentTimeMillis());
 			connections.add(connection);
-			
-			for(AdhocListener listener : listeners){
+
+			for (AdhocListener listener : listeners) {
 				listener.newConnection(connection);
 			}
 		} else {
@@ -218,7 +223,7 @@ public class AdhocSocket implements Runnable {
 
 	public interface AdhocListener {
 		public void onReceive(Packet packet);
-		
+
 		public void newConnection(Connection connection);
 	}
 }

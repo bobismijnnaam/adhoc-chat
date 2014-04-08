@@ -12,23 +12,25 @@ import java.util.Random;
 import adhoc.AdhocSocket.AdhocListener;
 
 /**
- * ReliableUDPSocket can reliably send packets to a destination, in this case using the AdhocSocket.
+ * ReliableUDPSocket can reliably send packets to a destination, in this case
+ * using the AdhocSocket.
  * 
  * @author willem
- *
+ * 
  */
 public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 	/**
-	 * unackedPackets - List of packets sent from 'this' client, not yet confirmed to be received
+	 * unackedPackets - List of packets sent from 'this' client, not yet
+	 * confirmed to be received
 	 */
 	private List<UdpPacket> unackedPackets = new ArrayList<UdpPacket>();
-	
+
 	/**
 	 * nextSeqNr - sequence number to use for the next packet to be sent
 	 */
 	private int nextSeqNr = 0;
-	
+
 	/**
 	 * socket - lower layer (see {@link AdhocSocket})
 	 */
@@ -37,6 +39,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public ReliableUDPSocket() {
 		try {
 			socket = new AdhocSocket("willem " + new Random().nextInt());
+			socket.addListener(this);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -47,8 +50,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	/**
 	 * Add to sending queue
 	 * 
-	 * @param dstAddress -
-	 * @param data -- underlying data (e.g. textchat)
+	 * @param dstAddress
+	 *            -
+	 * @param data
+	 *            -- underlying data (e.g. textchat)
 	 */
 	public void sendReliable(byte dstAddress, byte[] data) {
 		synchronized (unackedPackets) {
@@ -58,10 +63,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	}
 
 	public static void main(String[] args) {
-		
+
 		ReliableUDPSocket s = new ReliableUDPSocket();
-		s.sendReliable((byte) 2, new byte[] { 1, 2, 52, 1, 2 });
-		
+		s.sendReliable((byte) 1, new byte[] { 1, 2, 52, 1, 2 });
+
 	}
 
 	@Override
@@ -74,9 +79,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 						try {
 							System.out.println("SEND PKT=" + packet.seqNr
 									+ " ATTEMPT=" + packet.attemptCount);
-
-							socket.sendData(packet.dstAddress,
-									AdhocSocket.BROADCAST_TYPE,
+							socket.sendData(packet.dstAddress, (byte) 1, //Todo: change to actual PacketTYPE
 									packet.compileData());
 							packet.onSend();
 						} catch (IOException e) {
@@ -90,11 +93,12 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	}
 
 	/**
-	 * method of the AdhocListener 
+	 * method of the AdhocListener
 	 */
 	@Override
 	public void onReceive(Packet packet) {
 
+		System.out.println( "SUCCESS!!!!  " );
 		// get
 		try {
 			ByteArrayInputStream byteStream = new ByteArrayInputStream(
@@ -180,6 +184,12 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			}
 			return false;
 		}
+
+	}
+
+	@Override
+	public void newConnection(Connection connection) {
+		// TODO Auto-generated method stub
 
 	}
 

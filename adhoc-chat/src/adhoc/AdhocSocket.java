@@ -14,36 +14,37 @@ public class AdhocSocket implements Runnable {
 	private static final String ADDRESS = "226.1.2.3";
 	private static final int PORT = 4001;
 	protected static final long BROADCAST_TIME = 1000;
-	
+
 	public static final byte BROADCAST_TYPE = 0;
-	
+
 	public static final byte MULTICAST_ADDRESS = -1;
-	
+
 	protected static final long TIMEOUT = 10000;
-	
+
 	private MulticastSocket socket;
-	
+
 	private ArrayList<AdhocListener> listeners = new ArrayList<AdhocListener>();
 	private ArrayList<Connection> connections = new ArrayList<Connection>();
 	private boolean running = true;
 	private byte address;
 	private final String name;
 	private InetAddress inetAddress;
-	
+
 	public static void main(String[] args) throws IOException {
 		new AdhocSocket("test");
 	}
-	
+
 	public AdhocSocket(final String name) throws IOException {
 		this.name = name;
-		
+
 		socket = new MulticastSocket(PORT);
-		
+		socket.joinGroup(InetAddress.getByName(ADDRESS));
+
 		inetAddress = InetAddress.getByName(ADDRESS);
 		socket.joinGroup(inetAddress);
-		
+
 		new Thread(this).start();
-		
+
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -52,16 +53,18 @@ public class AdhocSocket implements Runnable {
 						Thread.sleep(BROADCAST_TIME);
 					} catch (InterruptedException e) {
 					}
-					
-					//send broadcast
-					
+
+					// send broadcast
+
 					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-					DataOutputStream dataStream = new DataOutputStream(byteStream);
-					
+					DataOutputStream dataStream = new DataOutputStream(
+							byteStream);
+
 					try {
 						dataStream.writeUTF(name);
-						
-						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
+
+						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE,
+								byteStream.toByteArray());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -82,43 +85,43 @@ public class AdhocSocket implements Runnable {
 			}
 		}).start();
 	}
-	
+
 	public void run() {
 		while (running) {
 			try {
 				byte[] buffer = new byte[1500];
 				DatagramPacket p = new DatagramPacket(buffer, buffer.length);
 				socket.receive(p);
-				
+
 				onReceive(buffer);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
-	
+
 	private void onReceive(byte[] buffer) throws IOException {
 		System.out.println("receive");
 		
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
 		DataInputStream dataStream = new DataInputStream(byteStream);
-		
+
 		byte source = dataStream.readByte();
 		byte dest = dataStream.readByte();
 		byte hopCount = dataStream.readByte();
 		byte type = dataStream.readByte();
-		
+
 		byte[] data = new byte[byteStream.available()];
 		dataStream.read(data);
-		
+
 		Packet packet = new Packet(source, dest, hopCount, type, data);
-		
+
 		if (dest != address) {
 			if (source != address) {
 				if (hopCount > 0) {
 					hopCount--;
 					sendData(source, dest, hopCount, type, data);
-					
+
 					if (type == BROADCAST_TYPE) {
 						handleBroadcast(packet);
 					}
@@ -132,13 +135,13 @@ public class AdhocSocket implements Runnable {
 			}
 		}
 	}
-	
+
 	private void handleBroadcast(Packet packet) {
 		Connection connection = getConnection(packet.getSourceAddress());
-		
+
 		if (connection == null) {
-			connection =
-				new Connection(packet.getSourceAddress(), new String(packet.getData()), System.currentTimeMillis());
+			connection = new Connection(packet.getSourceAddress(), new String(
+					packet.getData()), System.currentTimeMillis());
 			connections.add(connection);
 			
 			for(AdhocListener listener : listeners){
@@ -148,48 +151,52 @@ public class AdhocSocket implements Runnable {
 			connection.lastBroadcast = System.currentTimeMillis();
 		}
 	}
-	
+
 	public Connection getConnection(byte address) {
 		for (Connection connection : connections) {
-			if (connection.address == address) return connection;
+			if (connection.address == address)
+				return connection;
 		}
-		
+
 		return null;
 	}
-	
-	public void sendData(byte destAddress, byte packetType, byte[] data) throws IOException {
+
+	public void sendData(byte destAddress, byte packetType, byte[] data)
+			throws IOException {
 		sendData(address, destAddress, (byte) 8, packetType, data);
 	}
-	
-	public void sendData(byte source, byte destAddress, byte hopCount, byte packetType, byte[] data) throws IOException {
+
+	public void sendData(byte source, byte destAddress, byte hopCount,
+			byte packetType, byte[] data) throws IOException {
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
-		
+
 		dataStream.write(source);
 		dataStream.write(destAddress);
 		dataStream.write(hopCount);
 		dataStream.write(packetType);
 		dataStream.write(data);
-		
-		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
+
+		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream
+				.size(), inetAddress, PORT));
 	}
-	
+
 	public void addListener(AdhocListener listener) {
 		listeners.add(listener);
 	}
-	
+
 	public void removeListener(AdhocListener listener) {
 		listeners.remove(listener);
 	}
-	
+
 	public void close() {
 		running = false;
-		
-		//TODO: send leave message?
-		
+
+		// TODO: send leave message?
+
 		socket.close();
 	}
-	
+
 	public interface AdhocListener {
 		public void onReceive(Packet packet);
 		

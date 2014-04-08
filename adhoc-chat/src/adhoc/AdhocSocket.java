@@ -15,6 +15,9 @@ public class AdhocSocket implements Runnable {
 	private static final int PORT = 4001;
 	protected static final long BROADCAST_TIME = 1000;
 	
+	protected static final byte BROADCAST_TYPE = 0;
+	protected static final byte MULTICAST_ADDRESS = -1;
+	
 	private MulticastSocket socket;
 	
 	private ArrayList<AdhocListener> listeners = new ArrayList<AdhocListener>();
@@ -49,6 +52,8 @@ public class AdhocSocket implements Runnable {
 					
 					try {
 						dataStream.writeUTF(name);
+						
+						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -83,6 +88,8 @@ public class AdhocSocket implements Runnable {
 		byte[] data = new byte[byteStream.available()];
 		dataStream.read(data);
 		
+		Packet packet = new Packet(source, dest, hopCount, type, data);
+		
 		if (dest != address) {
 			if (source != address) {
 				if (hopCount > 0) {
@@ -93,7 +100,7 @@ public class AdhocSocket implements Runnable {
 		} else {
 			if (hopCount == 0) {
 				for (AdhocListener listener : listeners) {
-					listener.onReceive(new DataInputStream(new ByteArrayInputStream(data)));
+					listener.onReceive(packet);
 				}
 			}
 		}
@@ -133,6 +140,6 @@ public class AdhocSocket implements Runnable {
 	}
 	
 	public interface AdhocListener {
-		public void onReceive(DataInputStream dataInputStream);
+		public void onReceive(Packet packet);
 	}
 }

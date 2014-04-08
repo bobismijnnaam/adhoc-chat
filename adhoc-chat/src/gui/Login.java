@@ -33,7 +33,7 @@ public class Login {
 	
 	public Login() {
 		// start with creating a new panel, a gradientpanel with mig
-	    panel = new GradientPanel(new MigLayout());
+	    panel = new GradientPanel(new MigLayout(), Color.white, Color.LIGHT_GRAY);
 	    
 	    // initialize all the elements
 	    initialize();
@@ -51,6 +51,10 @@ public class Login {
 	public void addController(GuiHandler handler){
         enter.addActionListener(handler);
 	} //addController()
+	
+	public void removeController(GuiHandler handler) {
+		enter.removeActionListener(handler);
+	}
 	
 	/*
 	 * adds action listeners to the elements that need them.

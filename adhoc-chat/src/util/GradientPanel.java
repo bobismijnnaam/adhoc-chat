@@ -16,9 +16,11 @@ public class GradientPanel extends JPanel {
 	 */
 	private static final long serialVersionUID = 1L;
 	//private static final int N = 32;
-
-    public GradientPanel(LayoutManager manager) {
+	private Color color1, color2;
+    public GradientPanel(LayoutManager manager, Color color1, Color color2) {
     	super(manager);
+    	this.color1 = color1;
+    	this.color2 = color2;
     }
 
     @Override
@@ -28,8 +30,6 @@ public class GradientPanel extends JPanel {
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         int w = getWidth();
         int h = getHeight();
-        Color color1 = Color.white;
-        Color color2 = Color.LIGHT_GRAY;
         GradientPaint gp = new GradientPaint(0, 0, color1, 0, h, color2);
         g2d.setPaint(gp);
         g2d.fillRect(0, 0, w, h);

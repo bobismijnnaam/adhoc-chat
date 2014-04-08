@@ -6,9 +6,13 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 
 public class AdhocSocket implements Runnable {
 	private static final String ADDRESS = "226.1.2.3";
@@ -38,8 +42,11 @@ public class AdhocSocket implements Runnable {
 		this.name = name;
 
 		socket = new MulticastSocket(PORT);
-		socket.joinGroup(InetAddress.getByName(ADDRESS));
-
+		
+		address = getLocalAddress();
+		
+		System.out.println("Local address: " + address);
+		
 		inetAddress = InetAddress.getByName(ADDRESS);
 		socket.joinGroup(inetAddress);
 
@@ -84,6 +91,18 @@ public class AdhocSocket implements Runnable {
 				}
 			}
 		}).start();
+	}
+
+	private byte getLocalAddress() throws SocketException {
+		Enumeration<InetAddress> addresses = NetworkInterface.getByName("wlan0").getInetAddresses();
+		while(addresses.hasMoreElements()){
+			InetAddress element = addresses.nextElement();
+			
+			if(element instanceof Inet4Address) return ((Inet4Address) element).getAddress()[3];
+		}
+		
+		System.out.println("Unable to find local address!");
+		return -1;
 	}
 
 	public void run() {

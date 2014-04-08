@@ -11,8 +11,27 @@ import java.util.Random;
 
 import adhoc.AdhocSocket.AdhocListener;
 
+/**
+ * ReliableUDPSocket can reliably send packets to a destination, in this case using the AdhocSocket.
+ * 
+ * @author willem
+ *
+ */
 public class ReliableUDPSocket implements Runnable, AdhocListener {
 
+	/**
+	 * unackedPackets - List of packets sent from 'this' client, not yet confirmed to be received
+	 */
+	private List<UdpPacket> unackedPackets = new ArrayList<UdpPacket>();
+	
+	/**
+	 * nextSeqNr - sequence number to use for the next packet to be sent
+	 */
+	private int nextSeqNr = 0;
+	
+	/**
+	 * socket - lower layer (see {@link AdhocSocket})
+	 */
 	private AdhocSocket socket;
 
 	public ReliableUDPSocket() {
@@ -25,15 +44,11 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 	}
 
-	private List<UdpPacket> unackedPackets = new ArrayList<UdpPacket>();
-	private int nextSeqNr = 0;
-
 	/**
 	 * Add to sending queue
 	 * 
-	 * @param dstAddress
-	 * @param data
-	 *            -- underlying data
+	 * @param dstAddress -
+	 * @param data -- underlying data (e.g. textchat)
 	 */
 	public void sendReliable(byte dstAddress, byte[] data) {
 		synchronized (unackedPackets) {
@@ -43,8 +58,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	}
 
 	public static void main(String[] args) {
+		
 		ReliableUDPSocket s = new ReliableUDPSocket();
 		s.sendReliable((byte) 2, new byte[] { 1, 2, 52, 1, 2 });
+		
 	}
 
 	@Override
@@ -72,6 +89,9 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		}
 	}
 
+	/**
+	 * method of the AdhocListener 
+	 */
 	@Override
 	public void onReceive(Packet packet) {
 

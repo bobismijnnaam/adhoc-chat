@@ -45,8 +45,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public static void main(String[] args) {
 		ReliableUDPSocket s = new ReliableUDPSocket();
 		s.sendReliable((byte) 2, new byte[] { 1, 2, 52, 1, 2 });
-		s.sendReliable((byte) 15, new byte[] { 1, 2, 52, 1, 2 });
-		s.sendReliable((byte) 1, new byte[] { 1, 2, 52, 1, 2 });
 	}
 
 	@Override
@@ -56,17 +54,18 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			synchronized (unackedPackets) {
 				for (UdpPacket packet : unackedPackets) {
 					if (packet.shouldSend(now)) {
-						 try {
-						System.out.println("SEND PKT=" + packet.seqNr
-								+ " ATTEMPT=" + packet.attemptCount);
+						try {
+							System.out.println("SEND PKT=" + packet.seqNr
+									+ " ATTEMPT=" + packet.attemptCount);
 
-						socket.sendData(packet.dstAddress,
-								AdhocSocket.BROADCAST_TYPE, packet.compileData());
-						packet.onSend();
-						 } catch (IOException e) {
-						 socket.close();
-						 e.printStackTrace();
-						 }
+							socket.sendData(packet.dstAddress,
+									AdhocSocket.BROADCAST_TYPE,
+									packet.compileData());
+							packet.onSend();
+						} catch (IOException e) {
+							socket.close();
+							e.printStackTrace();
+						}
 					}
 				}
 			}

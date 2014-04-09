@@ -86,7 +86,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 		try {
 			dataStream.writeLong(timeStamp);
-			dataStream.write(message.getBytes());
+			dataStream.writeUTF(message);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -105,7 +105,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		s.sendReliable((byte) 3, "hoi michiel".getBytes());
 		s.sendReliable((byte) 3, "hoihoihoih".getBytes());
 		s.sendReliable((byte) 3, "ololololoool".getBytes());
-
 	}
 
 	/**

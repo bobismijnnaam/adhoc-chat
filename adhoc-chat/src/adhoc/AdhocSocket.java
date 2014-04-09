@@ -147,15 +147,15 @@ public class AdhocSocket implements Runnable {
 		byte type = dataStream.readByte();
 		int id = dataStream.readInt();
 		
-		System.out.println("received"+id);
+//		System.out.println("received"+id);
 		
 		byte[] data = new byte[byteStream.available()];
 		dataStream.read(data);
 
 		Packet packet = new Packet(source, dest, hopCount, type, id, data);
 		
-		if(isDuplicate(id)) System.out.println("received dupe packet");
-		else System.out.println("received new packet");
+//		if(isDuplicate(id)) System.out.println("received dupe packet");
+//		else System.out.println("received new packet");
 
 		if (dest != address) {
 			if (source != address) {

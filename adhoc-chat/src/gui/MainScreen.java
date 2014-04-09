@@ -81,12 +81,31 @@ public class MainScreen {
 	 * Adds a chatwindow and ads the user to the list
 	 */
 	public void addChat(String name, GuiHandler handler) {
+		if (users.containsKey(name) && !users.get(name).isShowing() ) {
+			userlist.add(users.get(name), "span, w 160px, h 50px");
+		}
+		
 		if (!chatScreens.containsKey(name)) {
+			
+			
+			
 			// create the chatwindow and textfield
 			createFullChat(name, handler);
 			// add the user to the list
 			addUser(name, handler);
 		}
+		
+		mainScreen.revalidate();
+		mainScreen.repaint();
+	}
+	
+	public void removeUser(String name) {
+		if (users.containsKey(name) && users.get(name).isShowing()) {
+			userlist.remove(users.get(name));
+			mainScreen.revalidate();
+			mainScreen.repaint();
+		}
+		
 	}
 	
 	/*

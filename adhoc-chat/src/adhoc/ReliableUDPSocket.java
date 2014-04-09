@@ -6,7 +6,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -28,17 +27,16 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 */
 	private List<UdpPacket> unackedPackets = new ArrayList<UdpPacket>();
 
-	
 	/**
 	 * toBeAcked - List of acks needed to be sent back to message's the origin
 	 */
-	private List<UdpPacket> toBeAcked = new ArrayList<UdpPacket>(); 
+	private List<UdpPacket> toBeAcked = new ArrayList<UdpPacket>();
 
 	/**
 	 * listeners - registered listeners for chat-messages
 	 */
-	private List<PrivateMessageListener> listeners = new ArrayList<PrivateMessageListener>(); 
-	
+	private List<PrivateMessageListener> listeners = new ArrayList<PrivateMessageListener>();
+
 	/**
 	 * nextSeqNr - sequence number to use for the next packet to be sent
 	 */
@@ -75,9 +73,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			unackedPackets.add(toBeAcked);
 		}
 	}
-	
+
 	/**
-	 * Send a chat 
+	 * Send a chat
+	 * 
 	 * @param dstAddress
 	 * @param timeStamp
 	 * @param message
@@ -96,6 +95,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		sendReliable(dstAddress, chatPacket.compileData());
 	}
 
+	// unit test
 	public static void main(String[] args) {
 
 		ReliableUDPSocket s = new ReliableUDPSocket();
@@ -106,12 +106,13 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		s.sendChatMessage((byte) 4, System.currentTimeMillis(), "peimels");
 		s.sendChatMessage((byte) 4, System.currentTimeMillis(), "peimels");
 	}
-	
+
 	/**
 	 * Add listener
+	 * 
 	 * @param l
 	 */
-	public void registerListener(PrivateMessageListener l ){
+	public void registerListener(PrivateMessageListener l) {
 		listeners.add(l);
 	}
 
@@ -168,20 +169,16 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 			// get 'chat header' if not ack
 			if (packetType == UdpPacket.TYPE_CHAT) {
-				byte[] restData = new byte[dataStream.available()];
-				
+
 				long timestampMillis = dataStream.readLong();
-				int offset = 0;
-				while (dataStream.available() > 0) {
-					dataStream.read(restData, offset, dataStream.available());
-				}
-				
-				String message = Arrays.toString(restData);
-				
+
+				String message = dataStream.readUTF();
+
 				for (PrivateMessageListener l : listeners) {
-					l.onReceiveMessage(packet.getSourceAddress(), timestampMillis, message);
+					l.onReceiveMessage(packet.getSourceAddress(),
+							timestampMillis, message);
 				}
-				
+
 				synchronized (toBeAcked) {
 					UdpPacket acket = new UdpPacket(UdpPacket.TYPE_ACK,
 							packet.getSourceAddress(), seqNr, new byte[] {});

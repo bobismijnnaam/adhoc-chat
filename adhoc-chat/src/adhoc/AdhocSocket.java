@@ -11,7 +11,6 @@ import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Random;
 
@@ -21,6 +20,7 @@ public class AdhocSocket implements Runnable {
 	protected static final long BROADCAST_TIME = 1000;
 
 	public static final byte BROADCAST_TYPE = 0;
+	private static final byte LEAVE_TYPE = 3;
 
 	public static final byte MULTICAST_ADDRESS = -1;
 
@@ -87,7 +87,6 @@ public class AdhocSocket implements Runnable {
 
 					for (Connection connection : connections) {
 						if (System.currentTimeMillis() - connection.lastBroadcast > TIMEOUT) {
-							System.out.println("removed connection " + connection.address);
 							removals.add(connection);
 							
 							for(AdhocListener listener : listeners){
@@ -171,6 +170,15 @@ public class AdhocSocket implements Runnable {
 					if (type == BROADCAST_TYPE) {
 						handleBroadcast(packet);
 					}
+					
+					if(type == LEAVE_TYPE){
+						Connection connection = getConnection(source);
+						connections.remove(connection);
+						
+						for(AdhocListener listener : listeners){
+							listener.removedConnection(connection);
+						}
+					}
 				}
 			}
 		} else {
@@ -240,6 +248,10 @@ public class AdhocSocket implements Runnable {
 		forwardedPackets[forwardedPacketsIndex] = id;
 		forwardedPacketsIndex = (forwardedPacketsIndex + 1) % forwardedPackets.length;
 	}
+	
+	public ArrayList<Connection> getConnections() {
+		return connections;
+	}
 
 	public void addListener(AdhocListener listener) {
 		listeners.add(listener);
@@ -251,9 +263,12 @@ public class AdhocSocket implements Runnable {
 
 	public void close() {
 		running = false;
-
-		// TODO: send leave message?
-
+		
+		try {
+			sendData(MULTICAST_ADDRESS, LEAVE_TYPE, new byte[0]);
+		} catch (IOException e) {
+		}
+		
 		socket.close();
 	}
 

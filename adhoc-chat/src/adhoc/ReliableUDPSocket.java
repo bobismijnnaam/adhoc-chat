@@ -7,8 +7,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+
 import adhoc.AdhocSocket.AdhocListener;
 
 /**
@@ -71,7 +73,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public static void main(String[] args) {
 
 		ReliableUDPSocket s = new ReliableUDPSocket();
-//		s.sendReliable((byte) 3, "groeten".getBytes());
+		s.sendReliable((byte) 3, "groeten".getBytes());
 
 	}
 
@@ -96,16 +98,18 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				}
 			}
 			synchronized (toBeAcked) {
-				for (UdpPacket ackh : toBeAcked) {
+				for (Iterator<UdpPacket> iterator = toBeAcked.iterator(); iterator
+						.hasNext();) {
+					UdpPacket p = (UdpPacket) iterator.next();
 					try {
-						socket.sendData(ackh.dstAddress, (byte) 1,
-								ackh.compileData());
+						socket.sendData(p.dstAddress, (byte) 1, p.compileData());
+						System.out.println(" SENT ACK " );
 					} catch (IOException e) {
-						socket.close();
 						e.printStackTrace();
 					}
-				}
+					iterator.remove();
 
+				}
 			}
 		}
 	}
@@ -122,6 +126,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 					packet.getData());
 			DataInputStream dataStream = new DataInputStream(byteStream);
 
+			System.out.println(byteStream.available());
 			byte packetType = dataStream.readByte();
 			int seqNr = dataStream.readInt();
 
@@ -134,9 +139,11 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				}
 				System.out.println("Received data: "
 						+ Arrays.toString(restData));
-				UdpPacket acket = new UdpPacket(UdpPacket.TYPE_ACK,
-						packet.getSourceAddress(), seqNr, new byte[] {});
-				toBeAcked.add(acket);
+				synchronized (toBeAcked) {
+					UdpPacket acket = new UdpPacket(UdpPacket.TYPE_ACK,
+							packet.getSourceAddress(), seqNr, new byte[] {});
+					toBeAcked.add(acket);
+				}
 			}
 
 			// only destinationAddress and seqNr are needed for comparison
@@ -184,7 +191,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			DataOutputStream dataStream = new DataOutputStream(byteStream);
 			try {
 				dataStream.write(packetType);
-				dataStream.write(seqNr);
+				dataStream.writeInt(seqNr);
 				if (packetType != TYPE_ACK) {
 					dataStream.write(data);
 				}
@@ -225,7 +232,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public void newConnection(Connection connection) {
 	}
 
-	@Override
 	public void removedConnection(Connection connection) {
-	}
+	};
 }

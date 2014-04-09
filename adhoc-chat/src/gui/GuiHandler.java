@@ -130,6 +130,10 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		mainScreen.addChat(connection.name, this);
 	}
 	
+	@Override
+	public void removedConnection(Connection connection) {
+	}
+	
 	public static void main(String[] args) {
 		// guihandler
 		GuiHandler handler = new GuiHandler();

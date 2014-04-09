@@ -47,9 +47,9 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 */
 	private AdhocSocket socket;
 
-	public ReliableUDPSocket() {
+	public ReliableUDPSocket(String username) {
 		try {
-			socket = new AdhocSocket("willem " + new Random().nextInt());
+			socket = new AdhocSocket(username);
 			socket.addListener(this);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -98,7 +98,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	// unit test
 	public static void main(String[] args) {
 
-		ReliableUDPSocket s = new ReliableUDPSocket();
+		ReliableUDPSocket s = new ReliableUDPSocket("Test");
 		s.sendReliable((byte) 3, "groeten".getBytes());
 		s.sendReliable((byte) 3, "loloool".getBytes());
 		s.sendReliable((byte) 3, "groeten".getBytes());

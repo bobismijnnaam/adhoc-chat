@@ -65,7 +65,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 				e.printStackTrace();
 			}
 			socket.addListener(this);
-			UDPsocket = new ReliableUDPSocket();
+			UDPsocket = new ReliableUDPSocket(loginGUI.getUsername());
 			UDPsocket.registerListener(this);
 			
 			// remove the login panel and go to the mainScreen
@@ -167,5 +167,6 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 		mainScreen.addSize(newMessage.getBounds().y, username);
 		frame.pack();
 		mainScreen.scrollDown(username);
+		frame.pack();
 	}
 }

@@ -173,6 +173,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				long timestampMillis = dataStream.readLong();
 
 				String message = dataStream.readUTF();
+				System.out.println(message);
 
 				for (PrivateMessageListener l : listeners) {
 					l.onReceiveMessage(packet.getSourceAddress(),

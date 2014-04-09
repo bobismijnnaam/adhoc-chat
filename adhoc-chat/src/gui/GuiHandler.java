@@ -108,24 +108,28 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 				mainScreen.scrollDown(messageParts[1]);
 			}
 		} else {
-			JButton source = (JButton) e.getSource();
-			// if the user wants to login
-			if (source.getName().equals("login")) {
+			if (((Component) e.getSource()).getName().equals("loginkey")) {
 				tryLogin(loginGUI.getUsername());
-			} else if (source.getName().contains("send")) {
-				String[] messageParts = ((Component) e.getSource()).getName().split("send");
-				String message = mainScreen.getMessage(messageParts[1]);
-				// send chatmessage
-				UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
-				if (!message.equals("") && message.trim().length() > 0 ) {
-					Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
-					frame.pack();
-					mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
-					frame.pack();
-					mainScreen.scrollDown(messageParts[1]);
-				}
 			} else {
-				mainScreen.changeChat(source.getName());
+				JButton source = (JButton) e.getSource();
+				// if the user wants to login
+				if (source.getName().equals("login")) {
+					tryLogin(loginGUI.getUsername());
+				} else if (source.getName().contains("send")) {
+					String[] messageParts = ((Component) e.getSource()).getName().split("send");
+					String message = mainScreen.getMessage(messageParts[1]);
+					// send chatmessage
+					UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
+					if (!message.equals("") && message.trim().length() > 0 ) {
+						Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
+						frame.pack();
+						mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
+						frame.pack();
+						mainScreen.scrollDown(messageParts[1]);
+					}
+				} else {
+					mainScreen.changeChat(source.getName());
+				}
 			}
 		}
 	}
@@ -161,7 +165,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
 			String message) {
 		String username = users.get(sourceAddress);
-		System.out.println("Received message from" + username);
+		System.out.println("Received message from" + username + message);
 		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
 		frame.pack();
 		mainScreen.addSize(newMessage.getBounds().y, username);

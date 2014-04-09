@@ -105,6 +105,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		// new Pair(dataInputStream.readByte(), )
 		// unackedPackets.remove(index)
 	}
+	
+	@Override
+	public void newConnection(Connection connection) {
+	}
 
 	public class UdpPacket {
 

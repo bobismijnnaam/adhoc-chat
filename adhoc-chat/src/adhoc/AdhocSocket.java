@@ -137,7 +137,7 @@ public class AdhocSocket implements Runnable {
 	}
 
 	private void onReceive(byte[] buffer) throws IOException {
-		System.out.println("received " + buffer.length);
+//		System.out.println("received " + buffer.length);
 
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
 		DataInputStream dataStream = new DataInputStream(byteStream);

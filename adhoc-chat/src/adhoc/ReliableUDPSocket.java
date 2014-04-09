@@ -66,7 +66,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public static void main(String[] args) {
 
 		ReliableUDPSocket s = new ReliableUDPSocket();
-		s.sendReliable((byte) 3, "groeten".getBytes());
+//		s.sendReliable((byte) 3, "groeten".getBytes());
 
 	}
 
@@ -203,4 +203,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public void newConnection(Connection connection) {
 	}
 
+	@Override
+	public void removedConnection(Connection connection) {
+	}
 }

@@ -86,7 +86,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 		try {
 			dataStream.writeLong(timeStamp);
-			dataStream.write(message.getBytes());
+			dataStream.writeUTF(message);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

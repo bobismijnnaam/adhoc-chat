@@ -69,11 +69,36 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			unackedPackets.add(toBeAcked);
 		}
 	}
+	
+	/**
+	 * Send a chat 
+	 * @param dstAddress
+	 * @param timeStamp
+	 * @param message
+	 */
+	public void sendChatMessage(byte dstAddress, long timeStamp, String message) {
+		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+		DataOutputStream dataStream = new DataOutputStream(byteStream);
+		try {
+			dataStream.writeLong(timeStamp);
+			dataStream.write(message.getBytes());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		UdpPacket chatPacket = new UdpPacket(UdpPacket.TYPE_CHAT, dstAddress,
+				nextSeqNr++, byteStream.toByteArray());
+		sendReliable(dstAddress, chatPacket.compileData());
+	}
 
 	public static void main(String[] args) {
 
 		ReliableUDPSocket s = new ReliableUDPSocket();
 		s.sendReliable((byte) 3, "groeten".getBytes());
+		s.sendReliable((byte) 3, "loloool".getBytes());
+		s.sendReliable((byte) 3, "groeten".getBytes());
+		s.sendReliable((byte) 3, "hoi michiel".getBytes());
+		s.sendReliable((byte) 3, "hoihoihoih".getBytes());
+		s.sendReliable((byte) 3, "ololololoool".getBytes());
 
 	}
 
@@ -103,12 +128,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 					UdpPacket p = (UdpPacket) iterator.next();
 					try {
 						socket.sendData(p.dstAddress, (byte) 1, p.compileData());
-						System.out.println(" SENT ACK " );
+						iterator.remove();
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-					iterator.remove();
-
 				}
 			}
 		}
@@ -175,7 +198,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 		// timing
 		private long nextAttempt;
-		private static final long RETRY_TIME = 1000; // 1 sec
+		private static final long RETRY_TIME = 2500; // 1 sec
 
 		public UdpPacket(byte packetType, byte dstAddress, int seqNr,
 				byte[] data) {
@@ -220,6 +243,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		public boolean equals(Object obj) {
 			if (obj instanceof UdpPacket) {
 				UdpPacket other = (UdpPacket) obj;
+				System.out.println(other.seqNr + " ---- " + this.seqNr);
+				if (other.seqNr == this.seqNr) {
+					return true;
+				}
 				return (this.dstAddress == other.dstAddress)
 						&& (this.seqNr == other.seqNr);
 			}

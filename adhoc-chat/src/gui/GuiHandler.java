@@ -3,6 +3,8 @@ package gui;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Observable;
 
 import javax.swing.JButton;
@@ -14,8 +16,10 @@ import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
 import adhoc.Packet;
+import adhoc.PrivateMessageListener;
+import adhoc.ReliableUDPSocket;
 
-public class GuiHandler implements java.awt.event.ActionListener, AdhocListener {
+public class GuiHandler implements java.awt.event.ActionListener, AdhocListener, PrivateMessageListener {
 
 	// the loginGUI
 	private Login loginGUI;
@@ -24,6 +28,9 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	private MainScreen mainScreen;
 	private boolean main = false;
 	private AdhocSocket socket;
+	private ReliableUDPSocket UDPsocket;
+	private HashMap<Byte, String> users = new HashMap<Byte, String>();
+	private HashMap<String, Byte> addr = new HashMap<String, Byte>();
 	
 	public GuiHandler() {
 		// JFrame
@@ -51,14 +58,15 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		// check username
 		if (loginGUI.getUsername().matches("\\w{3,}+")) {
 			
-			// AdhocSocket
 			try {
 				socket = new AdhocSocket(loginGUI.getUsername());
-				socket.addListener(this);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			socket.addListener(this);
+			UDPsocket = new ReliableUDPSocket();
+			UDPsocket.registerListener(this);
 			
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);
@@ -82,7 +90,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			loginGUI.setUsernameBad();
 		}
 	}
-
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		//System.out.println("Event triggered");
@@ -90,6 +98,8 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
 			String message = mainScreen.getMessage(messageParts[1]);
 			if (!message.equals("") && message.trim().length() > 0 ) {
+				// send chatmessage
+				UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
 				Message newMessage;
 				newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
 				frame.pack();
@@ -105,6 +115,8 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			} else if (source.getName().contains("send")) {
 				String[] messageParts = ((Component) e.getSource()).getName().split("send");
 				String message = mainScreen.getMessage(messageParts[1]);
+				// send chatmessage
+				UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
 				if (!message.equals("") && message.trim().length() > 0 ) {
 					Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
 					frame.pack();
@@ -129,6 +141,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		// TODO Auto-generated method stub
 		System.out.println("JEEJ EEN NIEUWE CONNECTIE");
 		mainScreen.addChat(connection.name, this);
+		users.put(connection.address, connection.name);
 	}
 	
 	@Override
@@ -141,5 +154,17 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		// guihandler
 		GuiHandler handler = new GuiHandler();
 		
+	}
+
+	@Override
+	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
+			String message) {
+		String username = users.get(sourceAddress);
+		System.out.println("Received message from" + username);
+		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
+		frame.pack();
+		mainScreen.addSize(newMessage.getBounds().y, username);
+		frame.pack();
+		mainScreen.scrollDown(username);
 	}
 }

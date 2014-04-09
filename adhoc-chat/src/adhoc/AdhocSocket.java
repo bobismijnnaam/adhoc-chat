@@ -127,7 +127,7 @@ public class AdhocSocket implements Runnable {
 	}
 
 	private void onReceive(byte[] buffer) throws IOException {
-		System.out.println("received " + buffer.length);
+//		System.out.println("received " + buffer.length);
 
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
 		DataInputStream dataStream = new DataInputStream(byteStream);
@@ -142,8 +142,6 @@ public class AdhocSocket implements Runnable {
 
 		Packet packet = new Packet(source, dest, hopCount, type, data);
 
-		System.out.println("Destination = " + dest + " Mine = " + address);
-		System.out.println(dest != address);
 		if (dest != address) {
 			if (source != address) {
 				if (hopCount > 0) {
@@ -156,7 +154,6 @@ public class AdhocSocket implements Runnable {
 				}
 			}
 		} else {
-			System.out.println(hopCount);
 			if (hopCount == 0) {
 				for (AdhocListener listener : listeners) {
 					listener.onReceive(packet);

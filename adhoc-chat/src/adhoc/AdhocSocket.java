@@ -150,7 +150,6 @@ public class AdhocSocket implements Runnable {
 		byte hopCount = dataStream.readByte();
 		byte type = dataStream.readByte();
 		int id = dataStream.readInt();
-
 		byte[] data = new byte[byteStream.available()];
 		dataStream.read(data);
 

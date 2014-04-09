@@ -26,6 +26,11 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 */
 	private List<UdpPacket> unackedPackets = new ArrayList<UdpPacket>();
 
+	private List<UdpPacket> toBeAcked = new ArrayList<UdpPacket>(); // ack
+																	// should be
+																	// sent back
+																	// by me
+
 	/**
 	 * nextSeqNr - sequence number to use for the next packet to be sent
 	 */
@@ -78,8 +83,8 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				for (UdpPacket packet : unackedPackets) {
 					if (packet.shouldSend(now)) {
 						try {
-							 System.out.println("SEND PKT=" + packet.seqNr
-							 + " ATTEMPT=" + packet.attemptCount);
+							System.out.println("SEND PKT=" + packet.seqNr
+									+ " ATTEMPT=" + packet.attemptCount);
 							socket.sendData(packet.dstAddress, (byte) 1,
 									packet.compileData());
 							packet.onSend();
@@ -89,6 +94,18 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 						}
 					}
 				}
+			}
+			synchronized (toBeAcked) {
+				for (UdpPacket ackh : toBeAcked) {
+					try {
+						socket.sendData(ackh.dstAddress, (byte) 1,
+								ackh.compileData());
+					} catch (IOException e) {
+						socket.close();
+						e.printStackTrace();
+					}
+				}
+
 			}
 		}
 	}
@@ -115,16 +132,21 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				while (dataStream.available() > 0) {
 					dataStream.read(restData, offset, dataStream.available());
 				}
-				System.out.println("Received data: " + Arrays.toString(restData));
+				System.out.println("Received data: "
+						+ Arrays.toString(restData));
+				UdpPacket acket = new UdpPacket(UdpPacket.TYPE_ACK,
+						packet.getSourceAddress(), seqNr, new byte[] {});
+				toBeAcked.add(acket);
 			}
 
 			// only destinationAddress and seqNr are needed for comparison
 			UdpPacket received = new UdpPacket(packetType,
 					packet.getDestAddress(), seqNr, restData);
-
-			synchronized (unackedPackets) {
-				boolean success = unackedPackets.remove(received);
-				System.out.println(" Packet Acked succes? : " + success);
+			if (packetType == UdpPacket.TYPE_ACK) {
+				synchronized (unackedPackets) {
+					boolean success = unackedPackets.remove(received);
+					System.out.println(" Packet Acked succes? : " + success);
+				}
 			}
 
 		} catch (Exception e) {
@@ -132,7 +154,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public class UdpPacket {
 
 		private static final byte TYPE_CHAT = 0;

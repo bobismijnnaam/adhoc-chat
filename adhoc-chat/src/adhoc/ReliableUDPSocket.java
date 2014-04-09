@@ -133,7 +133,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			e.printStackTrace();
 		}
 	}
-
+	
 	public class UdpPacket {
 
 		private static final byte TYPE_CHAT = 0;

@@ -35,8 +35,9 @@ public class AdhocSocket implements Runnable {
 	private final String name;
 	private InetAddress inetAddress;
 	
-	private int[] propagatedPackets = new int[1000];
-	private int propagatedPacketsIndex = 0;
+	//used for filtering duplicate packets
+	private int[] forwardedPackets = new int[1000];
+	private int forwardedPacketsIndex = 0;
 	
 	private final Random random = new Random();
 
@@ -137,8 +138,6 @@ public class AdhocSocket implements Runnable {
 	}
 
 	private void onReceive(byte[] buffer) throws IOException {
-//		System.out.println("received " + buffer.length);
-
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
 		DataInputStream dataStream = new DataInputStream(byteStream);
 
@@ -147,11 +146,16 @@ public class AdhocSocket implements Runnable {
 		byte hopCount = dataStream.readByte();
 		byte type = dataStream.readByte();
 		int id = dataStream.readInt();
-
+		
+		System.out.println("received"+id);
+		
 		byte[] data = new byte[byteStream.available()];
 		dataStream.read(data);
 
 		Packet packet = new Packet(source, dest, hopCount, type, id, data);
+		
+		if(isDuplicate(id)) System.out.println("received dupe packet");
+		else System.out.println("received new packet");
 
 		if (dest != address) {
 			if (source != address) {
@@ -174,8 +178,8 @@ public class AdhocSocket implements Runnable {
 	}
 	
 	private boolean isDuplicate(int packetId){
-		for(int i = 0; i < propagatedPackets.length; i++){
-			if(propagatedPackets[i] == packetId) return true;
+		for(int i = 0; i < forwardedPackets.length; i++){
+			if(forwardedPackets[i] == packetId) return true;
 		}
 		
 		return false;
@@ -188,7 +192,9 @@ public class AdhocSocket implements Runnable {
 			connection = new Connection(packet.getSourceAddress(), new String(packet.getData()),
 					System.currentTimeMillis());
 			connections.add(connection);
-
+			
+			System.out.println(connection.name + " has connected");
+			
 			for (AdhocListener listener : listeners) {
 				listener.newConnection(connection);
 			}
@@ -218,13 +224,15 @@ public class AdhocSocket implements Runnable {
 		dataStream.write(destAddress);
 		dataStream.write(hopCount);
 		dataStream.write(packetType);
-		dataStream.write(id);
+		dataStream.writeInt(id);
 		dataStream.write(data);
+		
+		System.out.println("sent "+id);
 
 		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
 		
-		propagatedPackets[propagatedPacketsIndex] = id;
-		propagatedPacketsIndex = (propagatedPacketsIndex + 1) % propagatedPackets.length;
+		forwardedPackets[forwardedPacketsIndex] = id;
+		forwardedPacketsIndex = (forwardedPacketsIndex + 1) % forwardedPackets.length;
 	}
 
 	public void addListener(AdhocListener listener) {

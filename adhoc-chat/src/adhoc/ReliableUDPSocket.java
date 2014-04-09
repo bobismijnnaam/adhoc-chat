@@ -146,7 +146,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-
 				}
 			}
 		}
@@ -281,4 +280,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public void newConnection(Connection connection) {
 	}
 
+	public void removedConnection(Connection connection) {
+	};
 }

@@ -1,11 +1,13 @@
 package gui;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.ScrollPane;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
+import java.util.HashMap;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -23,59 +25,138 @@ import net.miginfocom.swing.MigLayout;
 public class MainScreen {
 	
 	// the mainscreen panel
-	private JPanel mainScreen, chatScreen;
+	private JPanel mainScreen, chatScreen, userlist, fullchat;
 	private JButton actualSendButton;
 	private JTextField messageBox;
 	private JScrollPane scrollpane;
 	private int increased = 0;
+	private HashMap<String, JPanel> chatScreens = new HashMap<String, JPanel>();
+	private HashMap<String, JPanel> textFields = new HashMap<String, JPanel>();
+	private HashMap<String, JTextField> realTextFields = new HashMap<String, JTextField>();
+	private HashMap<String, JButton> users = new HashMap<String, JButton>();
+	private HashMap<String, JScrollPane> scrollPanes = new HashMap<String, JScrollPane>();
+	private String username;
 	
 	public MainScreen(String inputUsername) {
 		mainScreen = new JPanel(new MigLayout());
-		JLabel username = new JLabel("Hey " + inputUsername + " welcome to Ad-Hoc chat.");
-		mainScreen.add(username, "span");
-		
+		// create a chat
+		fullchat = createFullChat("", null);
+		mainScreen.add(fullchat, "split 2, w 540px, h 600px");
+		username = inputUsername;
+		userlist = new JPanel(new MigLayout());
+		userlist.setBackground(Color.DARK_GRAY);
+		mainScreen.add(userlist, "w 160px, h 600px");
+	}
+	
+	/*
+	 * returns username
+	 */
+	public String getUsername() {
+		return username;
+	}
+	
+	
+	/*
+	 * Change chat, it sets a different chat box
+	 */
+	public void changeChat(String name) {
+		JPanel newScreen = chatScreens.get(name);
+		JPanel newTextField = textFields.get(name);
+		Component[] components = fullchat.getComponents();
+		for (int i = 0; i < components.length; i++) {
+			fullchat.remove(components[i]);
+		}
+		System.out.println("Removed chat");
+		JLabel username = new JLabel("You're talking with " + name);
+		scrollpane = scrollPanes.get(name);
+		scrollpane.getVerticalScrollBar().setUnitIncrement(16);
+		fullchat.add(username, "span, w 530px, h 20px");
+		fullchat.add(scrollpane, "span, w 530px, h 510px");
+		fullchat.add(newTextField, "span, w 530px, h 50px");
+		fullchat.revalidate();
+		fullchat.repaint();
+	}
+	
+	/*
+	 * Adds a chatwindow and ads the user to the list
+	 */
+	public void addChat(String name, GuiHandler handler) {
+		if (!chatScreens.containsKey(name)) {
+			// create the chatwindow and textfield
+			createFullChat(name, handler);
+			// add the user to the list
+			addUser(name, handler);
+		}
+	}
+	
+	/*
+	 * Adds an user to the userlist
+	 */
+	private void addUser(String name, GuiHandler handler) {
+		JButton user = new JButton(name);
+		user.setName(name);
+		user.addActionListener(handler);
+		users.put(name, user);
+		userlist.add(user, "span, w 160px, h 50px");
+	}
+	
+	/*
+	 * Returns a chat screen with send button and puts username and chatpanel in the map.
+	 */
+	private JPanel createFullChat(String name, GuiHandler handler) {
+		JPanel fullChat = new JPanel(new MigLayout());
+		JLabel username = new JLabel("You're talking with " + name);
 		// create chatscreen
 		chatScreen = createChatScreen();
 		chatScreen.setPreferredSize(new Dimension(500, 500));
-		//chatScreen.setPreferredSize(chatScreen.getPreferredSize());
 		scrollpane = new JScrollPane(chatScreen);
 		scrollpane.getVerticalScrollBar().setUnitIncrement(16);
-		mainScreen.add(scrollpane, "span, w 530px, h 500px");
-		
-		// create the send button
-		JPanel sendButton = createSendButton();
-		mainScreen.add(sendButton, "span, w 530px, h 50px");
+		JPanel sendButton = createSendButton(handler, name);
+		fullChat.add(username, "span, w 530px, h 20px");
+		fullChat.add(scrollpane, "span, w 530px, h 510px");
+		fullChat.add(sendButton, "span, w 530px, h 50px");
+		chatScreens.put(name, chatScreen);
+		textFields.put(name, sendButton);
+		scrollPanes.put(name, scrollpane);
+		return fullChat;
 	}
 	
-	public void addController(GuiHandler handler){
-        actualSendButton.addActionListener(handler);
-        messageBox.addActionListener(handler);
+	private void addController(GuiHandler handler, JButton send, JTextField field){
+        send.addActionListener(handler);
+        field.addActionListener(handler);
 	} //addController()
 	
-	public String getMessage() {
-		String message = messageBox.getText();
-		messageBox.setText("");
+	public String getMessage(String name) {
+		String message = getTextField(name).getText();
+		getTextField(name).setText("");
 		return message;
 	}
 	
-	public JTextField getTextField() {
-		return messageBox;
+	public JTextField getTextField(String name) {
+		return realTextFields.get(name);
 	}
 	
 	/*
 	 * Adds a message to a chatscreen
 	 */
-	public Message addMessage(String message) {
+	public Message addMessage(String message, String username, String color1, String color2, boolean incoming, String group) {
 		Message newMessage = new Message("<html>"
-                + "<font color=#ffffdd><font size=4><b>Bob</b></font><br />" + message + "<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode("#ffe509"), Color.decode("#ccb410"));
-		chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px");
+                + "<font color=#ffffdd><font size=4><b>" + username + "</b></font><br />" + message + "<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode(color1), Color.decode(color2));
+		JPanel chatScreen;
+		chatScreen = chatScreens.get(group);
+		if (incoming) {
+			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px");
+		} else {
+			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px");
+		}
 		mainScreen.revalidate();
 		mainScreen.repaint();
 		return newMessage;
 	}
 	
-	public void addSize(int size) {
+	public void addSize(int size, String name) {
 		if (size > 440) {
+			JPanel chatScreen = chatScreens.get(name);
 			Dimension old = chatScreen.getPreferredSize();
 			old.height = size + 70;
 			chatScreen.setPreferredSize(old);
@@ -86,7 +167,8 @@ public class MainScreen {
 		} 
 	}
 	
-	public void scrollDown() {
+	public void scrollDown(String name) {
+		JScrollPane scrollpane = scrollPanes.get(name);
 		JScrollBar vertical = scrollpane.getVerticalScrollBar();
 		vertical.setValue( vertical.getMaximum());
 		scrollpane.revalidate();
@@ -95,21 +177,24 @@ public class MainScreen {
 	/*
 	 * Returns the send button and input bar
 	 */
-	private JPanel createSendButton() {
+	private JPanel createSendButton(GuiHandler handler, String name) {
 		GradientPanel sendButton = new GradientPanel(new MigLayout(), Color.DARK_GRAY, Color.DARK_GRAY);
-		messageBox = new JTextField();
+		JTextField messageBox = new JTextField();
+		messageBox.setName("enter" + name);
 		messageBox.setBackground(Color.decode("#e2e2e2"));
 		messageBox.setBorder(javax.swing.BorderFactory.createEmptyBorder());
 		sendButton.add(messageBox, "split 2, w 400px, h 45px");
 		Icon send = new ImageIcon("images/send.png");
-		actualSendButton = new JButton(send);
-		actualSendButton.setName("send");
+		JButton actualSendButton = new JButton(send);
+		actualSendButton.setName("send" + name);
 		actualSendButton.setMargin(new Insets(0, 0, 0, 0));
 		actualSendButton.setOpaque(false);
 		actualSendButton.setContentAreaFilled(false);
 		actualSendButton.setBorderPainted(false);
 		actualSendButton.setBorder(null);
+		realTextFields.put(name, messageBox);
 		sendButton.add(actualSendButton, "w 100px, h 50px");
+		addController(handler, actualSendButton, messageBox);
 		return sendButton;
 	}
 	
@@ -120,28 +205,6 @@ public class MainScreen {
 		GradientPanel chatScreen = new GradientPanel(new MigLayout(), Color.DARK_GRAY, Color.DARK_GRAY);
 		chatScreen.setSize(500, 500);
 		chatScreen.setBackground(Color.LIGHT_GRAY);
-//		JButton chatMessage = new JButton("<html>"
-//                 + "<font color=#ffffdd><font size=5><b>Michiel</b></font><br />This is a sample message send by me.<br /><font size=2>10:11 4/4/2014</font></font></html>");
-//		chatMessage.setFocusPainted(false);
-//		chatMessage.setMargin(new Insets(10, 10, 10, 10));
-//		chatMessage.setOpaque(false);
-//		//chatMessage.setContentAreaFilled(false);
-//		chatMessage.setBorderPainted(false);
-//		chatMessage.setBorder(null);
-//		chatScreen.add(chatMessage, "span, w 150px, h 50px");
-		
-		Message newMessage = new Message("<html>"
-                 + "<font color=#ffffdd><font size=4><b>Bob</b></font><br />This is a sample message send by me.<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode("#ffe509"), Color.decode("#ccb410"));
-		Message newMessage2 = new Message("<html>"
-                + "<font color=#ffffdd><font size=4><b>Michiel</b></font><br />This is a sample message send by me.<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode("#f22d2d"), Color.decode("#d10c0c"));
-		Message newMessage3 = new Message("<html>"
-                + "<font color=#ffffdd><font size=4><b>Michiel</b></font><br />This is a sample message send by me. This is a sample message send by me. This is a sample message send by me.<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode("#f22d2d"), Color.decode("#d10c0c"));
-		Message newMessage4 = new Message("<html>"
-                + "<font color=#ffffdd><font size=4><b>Bob</b></font><br />This is a sample message send by me.<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode("#ffe509"), Color.decode("#ccb410"));
-		chatScreen.add(newMessage2, "wrap 10, w 300px, h 50px");
-		chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px");
-		chatScreen.add(newMessage3, "wrap 10, w 300px, h 50px");
-		chatScreen.add(newMessage4, "wrap 10, w 300px, h 50px, gapx 200px");
 		return chatScreen;
 	}
 	

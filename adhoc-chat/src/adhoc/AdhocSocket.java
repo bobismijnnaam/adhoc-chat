@@ -42,7 +42,16 @@ public class AdhocSocket implements Runnable {
 	private final Random random = new Random();
 
 	public static void main(String[] args) throws IOException {
-		new AdhocSocket("test");
+		AdhocSocket adhocSocket = new AdhocSocket("test");
+		
+//		try {
+//			Thread.sleep(5000);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		adhocSocket.close();
 	}
 
 	public AdhocSocket(final String name) throws IOException {
@@ -63,11 +72,6 @@ public class AdhocSocket implements Runnable {
 			@Override
 			public void run() {
 				while (running) {
-					try {
-						Thread.sleep(BROADCAST_TIME);
-					} catch (InterruptedException e) {
-					}
-
 					// send broadcast
 
 					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -96,6 +100,11 @@ public class AdhocSocket implements Runnable {
 					}
 
 					connections.removeAll(removals);
+					
+					try {
+						Thread.sleep(BROADCAST_TIME);
+					} catch (InterruptedException e) {
+					}
 				}
 			}
 		}).start();

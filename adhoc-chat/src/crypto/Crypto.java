@@ -23,8 +23,8 @@ import javax.crypto.NoSuchPaddingException;
  * Inspired by: http://www.javamex.com/tutorials/cryptography/rsa_encryption_2.shtml
  */
 public class Crypto {
-	public static final int keyLength = 1024;
-	public static final String algorithm = "RSA";
+	public static final int KEY_LENGTH = 1024;
+	public static final String ALGORITHM = "RSA";
 	
 	private Key publicKey;
 	private Key privateKey;
@@ -37,15 +37,15 @@ public class Crypto {
 	 */
 	public Crypto() {
 		try {
-			KeyPairGenerator kpg = KeyPairGenerator.getInstance(algorithm);
-			kpg.initialize(keyLength);
+			KeyPairGenerator kpg = KeyPairGenerator.getInstance(ALGORITHM);
+			kpg.initialize(KEY_LENGTH);
 			
 			KeyPair kp = kpg.generateKeyPair();
 			
 			publicKey = kp.getPublic();
 			privateKey = kp.getPrivate();
 			
-			myCipher = Cipher.getInstance(algorithm);
+			myCipher = Cipher.getInstance(ALGORITHM);
 			myCipher.init(Cipher.DECRYPT_MODE, privateKey);
 		} catch (NoSuchAlgorithmException e) {
 			System.out.println("[ERROR] No such algorithm available");
@@ -149,9 +149,9 @@ public class Crypto {
 		}
 		
 		try {
-			Cipher clientCipher = Cipher.getInstance(algorithm);
+			Cipher clientCipher = Cipher.getInstance(ALGORITHM);
 			
-			KeyFactory kf = KeyFactory.getInstance(algorithm);
+			KeyFactory kf = KeyFactory.getInstance(ALGORITHM);
 			X509EncodedKeySpec keySpec = new X509EncodedKeySpec(key);
 			PublicKey clientKey = kf.generatePublic(keySpec);
 			

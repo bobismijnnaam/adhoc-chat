@@ -99,13 +99,12 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public static void main(String[] args) {
 
 		ReliableUDPSocket s = new ReliableUDPSocket();
-		s.sendReliable((byte) 3, "groeten".getBytes());
-		s.sendReliable((byte) 3, "loloool".getBytes());
-		s.sendReliable((byte) 3, "groeten".getBytes());
-		s.sendReliable((byte) 3, "hoi michiel".getBytes());
-		s.sendReliable((byte) 3, "hoihoihoih".getBytes());
-		s.sendReliable((byte) 3, "ololololoool".getBytes());
 
+		s.sendChatMessage((byte) 4, System.currentTimeMillis(), "peimels");
+		s.sendChatMessage((byte) 4, System.currentTimeMillis(), "peimels");
+		s.sendChatMessage((byte) 4, System.currentTimeMillis(), "peimels^2");
+		s.sendChatMessage((byte) 4, System.currentTimeMillis(), "peimels");
+		s.sendChatMessage((byte) 4, System.currentTimeMillis(), "peimels");
 	}
 	
 	/**

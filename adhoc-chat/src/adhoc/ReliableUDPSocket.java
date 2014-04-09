@@ -58,7 +58,8 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 */
 	public void sendReliable(byte dstAddress, byte[] data) {
 		synchronized (unackedPackets) {
-			UdpPacket toBeAcked = new UdpPacket(dstAddress, nextSeqNr++, data);
+			UdpPacket toBeAcked = new UdpPacket(UdpPacket.TYPE_CHAT,
+					dstAddress, nextSeqNr++, data);
 			unackedPackets.add(toBeAcked);
 		}
 	}
@@ -66,7 +67,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public static void main(String[] args) {
 
 		ReliableUDPSocket s = new ReliableUDPSocket();
-		s.sendReliable((byte) 1, new byte[] { 1, 2, 52, 1, 2 });
+		s.sendReliable((byte) 1, "groeten".getBytes());
 
 	}
 
@@ -78,13 +79,9 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				for (UdpPacket packet : unackedPackets) {
 					if (packet.shouldSend(now)) {
 						try {
-//							System.out.println("SEND PKT=" + packet.seqNr
-//									+ " ATTEMPT=" + packet.attemptCount);
-							socket.sendData(packet.dstAddress, (byte) 1, // Todo:
-																			// change
-																			// to
-																			// actual
-																			// PacketTYPE
+							// System.out.println("SEND PKT=" + packet.seqNr
+							// + " ATTEMPT=" + packet.attemptCount);
+							socket.sendData(packet.dstAddress, (byte) 1,
 									packet.compileData());
 							packet.onSend();
 						} catch (IOException e) {
@@ -109,19 +106,22 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 					packet.getData());
 			DataInputStream dataStream = new DataInputStream(byteStream);
 
+			byte packetType = dataStream.readByte();
 			int seqNr = dataStream.readInt();
 
-			// get 'chat header'
+			// get 'chat header' if not ack
 			byte[] restData = new byte[dataStream.available()];
-			int offset = 0;
-			while (dataStream.available() > 0) {
-				dataStream.read(restData, offset, dataStream.available());
+			if (packetType != UdpPacket.TYPE_ACK) {
+				int offset = 0;
+				while (dataStream.available() > 0) {
+					dataStream.read(restData, offset, dataStream.available());
+				}
+				System.out.println("Received data: " + Arrays.toString(restData));
 			}
-			System.out.println("Received data: "+Arrays.toString(restData));
 
 			// only destinationAddress and seqNr are needed for comparison
-			UdpPacket received = new UdpPacket(packet.getDestAddress(), seqNr,
-					null);
+			UdpPacket received = new UdpPacket(packetType,
+					packet.getDestAddress(), seqNr, restData);
 
 			synchronized (unackedPackets) {
 				boolean success = unackedPackets.remove(received);
@@ -136,6 +136,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 	public class UdpPacket {
 
+		private static final byte TYPE_CHAT = 0;
+		private static final byte TYPE_ACK = 1;
+
+		private byte packetType = -1;
 		private byte dstAddress;
 		private int seqNr;
 		private byte[] data;
@@ -145,10 +149,12 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		private long nextAttempt;
 		private static final long RETRY_TIME = 1000; // 1 sec
 
-		public UdpPacket(byte dstAddress, int seqNr, byte[] data) {
-			this.dstAddress = dstAddress;
-			this.seqNr = seqNr;
-			this.data = data;
+		public UdpPacket(byte packetType, byte dstAddress, int seqNr,
+				byte[] data) {
+			this.packetType = packetType; // 1st byte
+			this.seqNr = seqNr; // next 4 bytes
+			this.dstAddress = dstAddress; // specified in super header
+			this.data = data; // tail of packet, unused in TYPE_ACK
 			this.nextAttempt = System.currentTimeMillis();
 		}
 
@@ -156,8 +162,11 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 			DataOutputStream dataStream = new DataOutputStream(byteStream);
 			try {
+				dataStream.write(packetType);
 				dataStream.write(seqNr);
-				dataStream.write(data);
+				if (packetType != TYPE_ACK) {
+					dataStream.write(data);
+				}
 			} catch (IOException e) {
 				System.out.println(" ERROR COMPILING UDP PACKET! ");
 				e.printStackTrace();

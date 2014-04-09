@@ -6,13 +6,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.Random;
 
 public class AdhocSocket implements Runnable {
 	private static final String ADDRESS = "226.1.2.3";
@@ -33,6 +34,11 @@ public class AdhocSocket implements Runnable {
 	private byte address;
 	private final String name;
 	private InetAddress inetAddress;
+	
+	private int[] propagatedPackets = new int[1000];
+	private int propagatedPacketsIndex = 0;
+	
+	private final Random random = new Random();
 
 	public static void main(String[] args) throws IOException {
 		new AdhocSocket("test");
@@ -64,14 +70,12 @@ public class AdhocSocket implements Runnable {
 					// send broadcast
 
 					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-					DataOutputStream dataStream = new DataOutputStream(
-							byteStream);
+					DataOutputStream dataStream = new DataOutputStream(byteStream);
 
 					try {
 						dataStream.writeUTF(name);
 
-						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE,
-								byteStream.toByteArray());
+						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -81,10 +85,8 @@ public class AdhocSocket implements Runnable {
 					ArrayList<Connection> removals = new ArrayList<Connection>();
 
 					for (Connection connection : connections) {
-						if (System.currentTimeMillis()
-								- connection.lastBroadcast > TIMEOUT) {
-							System.out.println("removed connection "
-									+ connection.address);
+						if (System.currentTimeMillis() - connection.lastBroadcast > TIMEOUT) {
+							System.out.println("removed connection " + connection.address);
 							removals.add(connection);
 						}
 					}
@@ -96,18 +98,19 @@ public class AdhocSocket implements Runnable {
 	}
 
 	private byte getLocalAddress() throws SocketException {
-		Enumeration<NetworkInterface> addresses = NetworkInterface
-				.getNetworkInterfaces();
+		Enumeration<NetworkInterface> addresses = NetworkInterface.getNetworkInterfaces();
 		while (addresses.hasMoreElements()) {
 			NetworkInterface networkInteface = addresses.nextElement();
-			
+
 			Enumeration<InetAddress> inetAddresses = networkInteface.getInetAddresses();
-			
+
 			while (inetAddresses.hasMoreElements()) {
 				InetAddress address = inetAddresses.nextElement();
 				
+				System.out.println(address);
+				
 				if (address.getHostAddress().matches("192\\.168\\.5\\..{1,3}")) {
-					return address.getAddress()[4];
+					return address.getAddress()[3];
 				}
 			}
 		}
@@ -122,10 +125,10 @@ public class AdhocSocket implements Runnable {
 				byte[] buffer = new byte[1500];
 				DatagramPacket p = new DatagramPacket(buffer, buffer.length);
 				socket.receive(p);
-				
+
 				byte[] data = new byte[p.getLength()];
 				System.arraycopy(buffer, 0, data, 0, p.getLength());
-				
+
 				onReceive(data);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -143,15 +146,16 @@ public class AdhocSocket implements Runnable {
 		byte dest = dataStream.readByte();
 		byte hopCount = dataStream.readByte();
 		byte type = dataStream.readByte();
+		int id = dataStream.readInt();
 
 		byte[] data = new byte[byteStream.available()];
 		dataStream.read(data);
 
-		Packet packet = new Packet(source, dest, hopCount, type, data);
+		Packet packet = new Packet(source, dest, hopCount, type, id, data);
 
 		if (dest != address) {
 			if (source != address) {
-				if (hopCount > 0) {
+				if (hopCount > 0  && ! isDuplicate(id)) {
 					hopCount--;
 					sendData(source, dest, hopCount, type, data);
 
@@ -161,18 +165,28 @@ public class AdhocSocket implements Runnable {
 				}
 			}
 		} else {
-			for (AdhocListener listener : listeners) {
-				listener.onReceive(packet);
+			if(!isDuplicate(id)){
+				for (AdhocListener listener : listeners) {
+					listener.onReceive(packet);
+				}
 			}
 		}
+	}
+	
+	private boolean isDuplicate(int packetId){
+		for(int i = 0; i < propagatedPackets.length; i++){
+			if(propagatedPackets[i] == packetId) return true;
+		}
+		
+		return false;
 	}
 
 	private void handleBroadcast(Packet packet) {
 		Connection connection = getConnection(packet.getSourceAddress());
 
 		if (connection == null) {
-			connection = new Connection(packet.getSourceAddress(), new String(
-					packet.getData()), System.currentTimeMillis());
+			connection = new Connection(packet.getSourceAddress(), new String(packet.getData()),
+					System.currentTimeMillis());
 			connections.add(connection);
 
 			for (AdhocListener listener : listeners) {
@@ -192,24 +206,27 @@ public class AdhocSocket implements Runnable {
 		return null;
 	}
 
-	public void sendData(byte destAddress, byte packetType, byte[] data)
-			throws IOException {
+	public void sendData(byte destAddress, byte packetType, byte[] data) throws IOException {
 		sendData(address, destAddress, (byte) 8, packetType, data);
 	}
 
-	public void sendData(byte source, byte destAddress, byte hopCount,
-			byte packetType, byte[] data) throws IOException {
+	public void sendData(byte source, byte destAddress, byte hopCount, byte packetType, byte[] data) throws IOException {
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
+		
+		int id = random.nextInt();
 
 		dataStream.write(source);
 		dataStream.write(destAddress);
 		dataStream.write(hopCount);
 		dataStream.write(packetType);
+		dataStream.write(id);
 		dataStream.write(data);
 
-		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream
-				.size(), inetAddress, PORT));
+		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
+		
+		propagatedPackets[propagatedPacketsIndex] = id;
+		propagatedPacketsIndex = (propagatedPacketsIndex + 1) % propagatedPackets.length;
 	}
 
 	public void addListener(AdhocListener listener) {

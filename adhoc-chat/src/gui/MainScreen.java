@@ -1,13 +1,19 @@
 package gui;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Insets;
+import java.awt.ScrollPane;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
@@ -20,6 +26,8 @@ public class MainScreen {
 	private JPanel mainScreen, chatScreen;
 	private JButton actualSendButton;
 	private JTextField messageBox;
+	private JScrollPane scrollpane;
+	private int increased = 0;
 	
 	public MainScreen(String inputUsername) {
 		mainScreen = new JPanel(new MigLayout());
@@ -28,15 +36,20 @@ public class MainScreen {
 		
 		// create chatscreen
 		chatScreen = createChatScreen();
-		mainScreen.add(chatScreen, "span, w 500px, h 500px");
+		chatScreen.setPreferredSize(new Dimension(500, 500));
+		//chatScreen.setPreferredSize(chatScreen.getPreferredSize());
+		scrollpane = new JScrollPane(chatScreen);
+		scrollpane.getVerticalScrollBar().setUnitIncrement(16);
+		mainScreen.add(scrollpane, "span, w 530px, h 500px");
 		
 		// create the send button
 		JPanel sendButton = createSendButton();
-		mainScreen.add(sendButton, "span, w 500px, h 50px");
+		mainScreen.add(sendButton, "span, w 530px, h 50px");
 	}
 	
 	public void addController(GuiHandler handler){
         actualSendButton.addActionListener(handler);
+        messageBox.addActionListener(handler);
 	} //addController()
 	
 	public String getMessage() {
@@ -45,15 +58,38 @@ public class MainScreen {
 		return message;
 	}
 	
+	public JTextField getTextField() {
+		return messageBox;
+	}
+	
 	/*
 	 * Adds a message to a chatscreen
 	 */
-	public void addMessage(String message) {
-		Message newMessage5 = new Message("<html>"
+	public Message addMessage(String message) {
+		Message newMessage = new Message("<html>"
                 + "<font color=#ffffdd><font size=4><b>Bob</b></font><br />" + message + "<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode("#ffe509"), Color.decode("#ccb410"));
-		chatScreen.add(newMessage5, "wrap 10, w 300px, h 50px, gapx 200px");
+		chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px");
 		mainScreen.revalidate();
 		mainScreen.repaint();
+		return newMessage;
+	}
+	
+	public void addSize(int size) {
+		if (size > 440) {
+			Dimension old = chatScreen.getPreferredSize();
+			old.height = size + 70;
+			chatScreen.setPreferredSize(old);
+			chatScreen.setPreferredSize(chatScreen.getPreferredSize());
+			chatScreen.revalidate();
+			mainScreen.revalidate();
+			mainScreen.repaint();
+		} 
+	}
+	
+	public void scrollDown() {
+		JScrollBar vertical = scrollpane.getVerticalScrollBar();
+		vertical.setValue( vertical.getMaximum());
+		scrollpane.revalidate();
 	}
 	
 	/*

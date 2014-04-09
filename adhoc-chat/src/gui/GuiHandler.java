@@ -54,6 +54,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			// AdhocSocket
 			try {
 				socket = new AdhocSocket(loginGUI.getUsername());
+				socket.addListener(this);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

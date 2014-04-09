@@ -86,6 +86,8 @@ public class MainScreen {
 			createFullChat(name, handler);
 			// add the user to the list
 			addUser(name, handler);
+			mainScreen.revalidate();
+			mainScreen.repaint();
 		}
 	}
 	

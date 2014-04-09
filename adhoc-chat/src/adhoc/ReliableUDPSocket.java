@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -77,9 +78,13 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				for (UdpPacket packet : unackedPackets) {
 					if (packet.shouldSend(now)) {
 						try {
-							System.out.println("SEND PKT=" + packet.seqNr
-									+ " ATTEMPT=" + packet.attemptCount);
-							socket.sendData(packet.dstAddress, (byte) 1, //Todo: change to actual PacketTYPE
+//							System.out.println("SEND PKT=" + packet.seqNr
+//									+ " ATTEMPT=" + packet.attemptCount);
+							socket.sendData(packet.dstAddress, (byte) 1, // Todo:
+																			// change
+																			// to
+																			// actual
+																			// PacketTYPE
 									packet.compileData());
 							packet.onSend();
 						} catch (IOException e) {
@@ -98,7 +103,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	@Override
 	public void onReceive(Packet packet) {
 
-		System.out.println( "SUCCESS!!!!  " );
 		// get
 		try {
 			ByteArrayInputStream byteStream = new ByteArrayInputStream(
@@ -106,11 +110,14 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			DataInputStream dataStream = new DataInputStream(byteStream);
 
 			int seqNr = dataStream.readInt();
-			// byte[] restData = new byte[dataStream.available()];
-			// int offset = 0;
-			// while(dataStream.available()>0){
-			// dataStream.read(restData, offset, dataStream.available());
-			// }
+
+			// get 'chat header'
+			byte[] restData = new byte[dataStream.available()];
+			int offset = 0;
+			while (dataStream.available() > 0) {
+				dataStream.read(restData, offset, dataStream.available());
+			}
+			System.out.println("Received data: "+Arrays.toString(restData));
 
 			// only destinationAddress and seqNr are needed for comparison
 			UdpPacket received = new UdpPacket(packet.getDestAddress(), seqNr,
@@ -118,16 +125,13 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 			synchronized (unackedPackets) {
 				boolean success = unackedPackets.remove(received);
-				System.out.println(" Success : " + success);
+				System.out.println(" Packet Acked succes? : " + success);
 			}
 
 		} catch (Exception e) {
 			System.out.println(" NOOOOO !!! :( ");
 			e.printStackTrace();
 		}
-		// dataInputStream.readByte(); //src
-		// new Pair(dataInputStream.readByte(), )
-		// unackedPackets.remove(index)
 	}
 
 	public class UdpPacket {

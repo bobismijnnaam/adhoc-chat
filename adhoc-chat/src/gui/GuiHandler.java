@@ -15,6 +15,7 @@ public class GuiHandler implements java.util.Observer, java.awt.event.ActionList
 	private JFrame frame;
 	private JPanel panel, mainScreenPanel;
 	private MainScreen mainScreen;
+	private boolean main = false;
 	
 	public GuiHandler() {
 		// JFrame
@@ -46,11 +47,13 @@ public class GuiHandler implements java.util.Observer, java.awt.event.ActionList
 			frame.remove(panel);
 			frame.setSize(0, 0);
 			frame.setSize(800, 700);
+			main = true;
 			mainScreen = new MainScreen(loginGUI.getUsername());
 			mainScreenPanel = mainScreen.returnPanel();
 			mainScreen.addController(this);
 			frame.add(mainScreenPanel);
 			frame.setLocationRelativeTo(null);
+			frame.pack();
 		} else {
 			// give feedback that the username is bad
 			loginGUI.setUsernameBad();
@@ -59,15 +62,33 @@ public class GuiHandler implements java.util.Observer, java.awt.event.ActionList
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		JButton source = (JButton) e.getSource();
-		System.out.println(source.getLocation());
-		System.out.println(source.getName());
-		// if the user wants to login
-		if (source.getName().equals("login")) {
-			System.out.println("User wants to login with username: " + loginGUI.getUsername());
-			tryLogin(loginGUI.getUsername());
-		} else if (source.getName().equals("send")) {
-			mainScreen.addMessage(mainScreen.getMessage());
+		if (main && e.getSource() == mainScreen.getTextField()) {
+			String message = mainScreen.getMessage();
+			if (!message.equals("") && message.trim().length() > 0 ) {
+				Message newMessage = mainScreen.addMessage(message);
+				frame.pack();
+				System.out.println(newMessage.getBounds());
+				mainScreen.addSize(newMessage.getBounds().y);
+				frame.pack();
+				mainScreen.scrollDown();
+			}
+		} else {
+			JButton source = (JButton) e.getSource();
+			// if the user wants to login
+			if (source.getName().equals("login")) {
+				System.out.println("User wants to login with username: " + loginGUI.getUsername());
+				tryLogin(loginGUI.getUsername());
+			} else if (source.getName().equals("send")) {
+				String message = mainScreen.getMessage();
+				if (!message.equals("") && message.trim().length() > 0 ) {
+					Message newMessage = mainScreen.addMessage(message);
+					frame.pack();
+					System.out.println(newMessage.getBounds());
+					mainScreen.addSize(newMessage.getBounds().y);
+					frame.pack();
+					mainScreen.scrollDown();
+				}
+			}
 		}
 	}
 	

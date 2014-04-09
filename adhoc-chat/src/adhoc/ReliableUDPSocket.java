@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-
 import adhoc.AdhocSocket.AdhocListener;
 
 /**
@@ -67,7 +66,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	public static void main(String[] args) {
 
 		ReliableUDPSocket s = new ReliableUDPSocket();
-		s.sendReliable((byte) 1, "groeten".getBytes());
+		s.sendReliable((byte) 3, "groeten".getBytes());
 
 	}
 
@@ -79,8 +78,8 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				for (UdpPacket packet : unackedPackets) {
 					if (packet.shouldSend(now)) {
 						try {
-							// System.out.println("SEND PKT=" + packet.seqNr
-							// + " ATTEMPT=" + packet.attemptCount);
+							 System.out.println("SEND PKT=" + packet.seqNr
+							 + " ATTEMPT=" + packet.attemptCount);
 							socket.sendData(packet.dstAddress, (byte) 1,
 									packet.compileData());
 							packet.onSend();
@@ -202,8 +201,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 	@Override
 	public void newConnection(Connection connection) {
-		// TODO Auto-generated method stub
-
 	}
 
 }

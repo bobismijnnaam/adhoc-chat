@@ -96,13 +96,20 @@ public class AdhocSocket implements Runnable {
 	}
 
 	private byte getLocalAddress() throws SocketException {
-		Enumeration<InetAddress> addresses = NetworkInterface
-				.getByName("wlan0").getInetAddresses();
+		Enumeration<NetworkInterface> addresses = NetworkInterface
+				.getNetworkInterfaces();
 		while (addresses.hasMoreElements()) {
-			InetAddress element = addresses.nextElement();
-
-			if (element instanceof Inet4Address)
-				return ((Inet4Address) element).getAddress()[3];
+			NetworkInterface networkInteface = addresses.nextElement();
+			
+			Enumeration<InetAddress> inetAddresses = networkInteface.getInetAddresses();
+			
+			while (inetAddresses.hasMoreElements()) {
+				InetAddress address = inetAddresses.nextElement();
+				
+				if (address.getHostAddress().matches("192\\.168\\.5\\..{1,3}")) {
+					return address.getAddress()[4];
+				}
+			}
 		}
 
 		System.out.println("Unable to find local address!");

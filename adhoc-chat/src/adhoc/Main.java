@@ -13,6 +13,8 @@ public class Main {
 	
 	public static void main(String[] args) {
 		try {
+			System.out.println(InetAddress.getLocalHost().getHostAddress());
+			
 			byte[] address = InetAddress.getLocalHost().getAddress();
 			System.out.println(Arrays.toString(address));
 		} catch (UnknownHostException e) {

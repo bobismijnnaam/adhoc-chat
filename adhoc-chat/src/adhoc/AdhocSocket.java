@@ -157,7 +157,7 @@ public class AdhocSocket implements Runnable {
 			if (source != address) {
 				if (hopCount > 0  && ! isDuplicate(id)) {
 					hopCount--;
-					sendData(source, dest, hopCount, type, data);
+					sendData(source, dest, hopCount, type, id, data);
 
 					if (type == BROADCAST_TYPE) {
 						handleBroadcast(packet);
@@ -207,15 +207,13 @@ public class AdhocSocket implements Runnable {
 	}
 
 	public void sendData(byte destAddress, byte packetType, byte[] data) throws IOException {
-		sendData(address, destAddress, (byte) 8, packetType, data);
+		sendData(address, destAddress, (byte) 8, packetType, random.nextInt(), data);
 	}
 
-	public void sendData(byte source, byte destAddress, byte hopCount, byte packetType, byte[] data) throws IOException {
+	public void sendData(byte source, byte destAddress, byte hopCount, byte packetType, int id, byte[] data) throws IOException {
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 		
-		int id = random.nextInt();
-
 		dataStream.write(source);
 		dataStream.write(destAddress);
 		dataStream.write(hopCount);

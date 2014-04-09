@@ -28,11 +28,17 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 */
 	private List<UdpPacket> unackedPackets = new ArrayList<UdpPacket>();
 
-	private List<UdpPacket> toBeAcked = new ArrayList<UdpPacket>(); // ack
-																	// should be
-																	// sent back
-																	// by me
+	
+	/**
+	 * toBeAcked - List of acks needed to be sent back to message's the origin
+	 */
+	private List<UdpPacket> toBeAcked = new ArrayList<UdpPacket>(); 
 
+	/**
+	 * listeners - registered listeners for chat-messages
+	 */
+	private List<PrivateMessageListener> listeners = new ArrayList<PrivateMessageListener>(); 
+	
 	/**
 	 * nextSeqNr - sequence number to use for the next packet to be sent
 	 */
@@ -101,6 +107,14 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		s.sendReliable((byte) 3, "ololololoool".getBytes());
 
 	}
+	
+	/**
+	 * Add listener
+	 * @param l
+	 */
+	public void registerListener(PrivateMessageListener l ){
+		listeners.add(l);
+	}
 
 	@Override
 	public void run() {
@@ -155,14 +169,21 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			int seqNr = dataStream.readInt();
 
 			// get 'chat header' if not ack
-			byte[] restData = new byte[dataStream.available()];
-			if (packetType != UdpPacket.TYPE_ACK) {
+			if (packetType == UdpPacket.TYPE_CHAT) {
+				byte[] restData = new byte[dataStream.available()];
+				
+				long timestampMillis = dataStream.readLong();
 				int offset = 0;
 				while (dataStream.available() > 0) {
 					dataStream.read(restData, offset, dataStream.available());
 				}
-				System.out.println("Received data: "
-						+ Arrays.toString(restData));
+				
+				String message = Arrays.toString(restData);
+				
+				for (PrivateMessageListener l : listeners) {
+					l.onReceiveMessage(packet.getSourceAddress(), timestampMillis, message);
+				}
+				
 				synchronized (toBeAcked) {
 					UdpPacket acket = new UdpPacket(UdpPacket.TYPE_ACK,
 							packet.getSourceAddress(), seqNr, new byte[] {});
@@ -172,7 +193,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 			// only destinationAddress and seqNr are needed for comparison
 			UdpPacket received = new UdpPacket(packetType,
-					packet.getDestAddress(), seqNr, restData);
+					packet.getDestAddress(), seqNr, null);
 			if (packetType == UdpPacket.TYPE_ACK) {
 				synchronized (unackedPackets) {
 					boolean success = unackedPackets.remove(received);

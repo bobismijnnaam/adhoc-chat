@@ -142,6 +142,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 		System.out.println("JEEJ EEN NIEUWE CONNECTIE");
 		mainScreen.addChat(connection.name, this);
 		users.put(connection.address, connection.name);
+		addr.put(connection.name, connection.address);
 	}
 	
 	@Override

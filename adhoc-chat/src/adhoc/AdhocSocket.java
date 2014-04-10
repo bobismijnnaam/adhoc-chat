@@ -77,23 +77,26 @@ public class AdhocSocket implements Runnable {
 		
 		adhocSocket.addListener(ahListener);
 		
+		byte client1 = (byte) 1;
+		byte client2 = (byte) 2;
+		
 		if (args[0].equals("client1")) {
 			
 			Thread.sleep(2000);
 			
-			adhocSocket.sendData((byte) 1, (byte) 1, "TESTMESSAGE1".getBytes());
+			adhocSocket.sendData(client1, (byte) 1, "TESTMESSAGE1".getBytes());
 			
 			Thread.sleep(2000);
 			
-			adhocSocket.sendData((byte) 1, (byte) 1, "TESTMESSAGE3".getBytes()); 
+			adhocSocket.sendData(client1, (byte) 1, "TESTMESSAGE3".getBytes()); 
 		} else {
 			Thread.sleep(3000);
 			
-			adhocSocket.sendData((byte) 2, (byte) 1, "TESTMESSAGE2".getBytes());
+			adhocSocket.sendData(client2, (byte) 1, "TESTMESSAGE2".getBytes());
 			
 			Thread.sleep(2000);
 			
-			adhocSocket.sendData((byte) 2, (byte) 1, "TESTMESSAGE4".getBytes());
+			adhocSocket.sendData(client2, (byte) 1, "TESTMESSAGE4".getBytes());
 		}
 		
 		adhocSocket.close();

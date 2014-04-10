@@ -2,6 +2,13 @@ package adhoc;
 
 public class Packet {
 	
+	//packet types
+	public static final int TYPE_BROADCAST 		= 0;
+	public static final int TYPE_CHAT_PRIVATE	= 1;
+	public static final int TYPE_LEAVE	 		= 2;
+	public static final int TYPE_ACK 			= 3;
+	public static final int TYPE_CHAT_GROUP 	= 4;
+	
 	private byte sourceAddress, destAddress, hopCount, type;
 	private byte[] data;
 	private int id;

@@ -51,7 +51,7 @@ public class AdhocSocket implements Runnable {
 		//
 		// adhocSocket.close();
 		
-		AdhocSocket adhocSocket = new AdhocSocket(args[0]);
+		AdhocSocket adhocSocket = new AdhocSocket(args[0], new byte[0]);
 		
 		AdhocListener ahListener = new AdhocListener() {
 			@Override
@@ -101,8 +101,8 @@ public class AdhocSocket implements Runnable {
 		
 		adhocSocket.close();
 	}
-
-	public AdhocSocket(final String name) throws IOException {
+	
+	public AdhocSocket(final String name, final byte[] key) throws IOException {
 		this.name = name;
 
 		socket = new MulticastSocket(PORT);
@@ -127,6 +127,7 @@ public class AdhocSocket implements Runnable {
 
 					try {
 						dataStream.writeUTF(name);
+						dataStream.write(key);
 
 						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
 					} catch (IOException e) {

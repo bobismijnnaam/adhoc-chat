@@ -43,15 +43,15 @@ public class AdhocSocket implements Runnable {
 
 	public static void main(String[] args) throws IOException {
 		AdhocSocket adhocSocket = new AdhocSocket("test");
-		
-//		try {
-//			Thread.sleep(5000);
-//		} catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//		adhocSocket.close();
+
+		// try {
+		// Thread.sleep(5000);
+		// } catch (InterruptedException e) {
+		// // TODO Auto-generated catch block
+		// e.printStackTrace();
+		// }
+		//
+		// adhocSocket.close();
 	}
 
 	public AdhocSocket(final String name) throws IOException {
@@ -92,15 +92,15 @@ public class AdhocSocket implements Runnable {
 					for (Connection connection : connections) {
 						if (System.currentTimeMillis() - connection.lastBroadcast > TIMEOUT) {
 							removals.add(connection);
-							
-							for(AdhocListener listener : listeners){
+
+							for (AdhocListener listener : listeners) {
 								listener.removedConnection(connection);
 							}
 						}
 					}
 
 					connections.removeAll(removals);
-					
+
 					try {
 						Thread.sleep(BROADCAST_TIME);
 					} catch (InterruptedException e) {
@@ -135,7 +135,7 @@ public class AdhocSocket implements Runnable {
 	public void run() {
 		while (running) {
 			try {
-				byte[] buffer = new byte[1500];//MTU is 1500 bytes
+				byte[] buffer = new byte[1500];// MTU is 1500 bytes
 				DatagramPacket p = new DatagramPacket(buffer, buffer.length);
 				socket.receive(p);
 
@@ -179,12 +179,12 @@ public class AdhocSocket implements Runnable {
 					if (type == BROADCAST_TYPE) {
 						handleBroadcast(packet);
 					}
-					
-					if(type == LEAVE_TYPE){
+
+					if (type == LEAVE_TYPE) {
 						Connection connection = getConnection(source);
 						connections.remove(connection);
-						
-						for(AdhocListener listener : listeners){
+
+						for (AdhocListener listener : listeners) {
 							listener.removedConnection(connection);
 						}
 					}
@@ -238,7 +238,12 @@ public class AdhocSocket implements Runnable {
 		sendData(address, destAddress, (byte) 8, packetType, random.nextInt(), data);
 	}
 
-	public void sendData(byte source, byte destAddress, byte hopCount, byte packetType, int id, byte[] data)
+	public void sendData(Packet packet) throws IOException {
+		sendData(packet.getSourceAddress(), packet.getDestAddress(), packet.getHopCount(), packet.getType(),
+				packet.getId(), packet.getData());
+	}
+
+	private void sendData(byte source, byte destAddress, byte hopCount, byte packetType, int id, byte[] data)
 			throws IOException {
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
@@ -257,7 +262,7 @@ public class AdhocSocket implements Runnable {
 		forwardedPackets[forwardedPacketsIndex] = id;
 		forwardedPacketsIndex = (forwardedPacketsIndex + 1) % forwardedPackets.length;
 	}
-	
+
 	public ArrayList<Connection> getConnections() {
 		return connections;
 	}
@@ -270,14 +275,22 @@ public class AdhocSocket implements Runnable {
 		listeners.remove(listener);
 	}
 
+	public byte getAddress() {
+		return address;
+	}
+
+	public boolean isRunning() {
+		return running;
+	}
+
 	public void close() {
 		running = false;
-		
+
 		try {
 			sendData(MULTICAST_ADDRESS, LEAVE_TYPE, new byte[0]);
 		} catch (IOException e) {
 		}
-		
+
 		socket.close();
 	}
 
@@ -285,7 +298,7 @@ public class AdhocSocket implements Runnable {
 		public void onReceive(Packet packet);
 
 		public void newConnection(Connection connection);
-		
+
 		public void removedConnection(Connection connection);
 	}
 }

@@ -19,7 +19,7 @@ import adhoc.Packet;
 import adhoc.UDPSocketListener;
 import adhoc.ReliableUDPSocket;
 
-public class GuiHandler implements java.awt.event.ActionListener, AdhocListener, UDPSocketListener {
+public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListener {
 
 	// the loginGUI
 	private Login loginGUI;
@@ -58,13 +58,13 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 		// check username
 		if (loginGUI.getUsername().matches("\\w{3,}+")) {
 			
-			try {
-				socket = new AdhocSocket(loginGUI.getUsername());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			socket.addListener(this);
+//			try {
+//				socket = new AdhocSocket(loginGUI.getUsername());
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//			socket.addListener(this);
 			UDPsocket = new ReliableUDPSocket(loginGUI.getUsername());
 			UDPsocket.registerListener(this);
 			
@@ -134,11 +134,11 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 		}
 	}
 	
-	@Override
-	public void onReceive(Packet packet) {
-		// TODO Auto-generated method stub
-		System.out.println("JEEJ EEN PAKKET");
-	}
+//	@Override
+//	public void onReceive(Packet packet) {
+//		// TODO Auto-generated method stub
+//		System.out.println("JEEJ EEN PAKKET");
+//	}
 
 	@Override
 	public void newConnection(Connection connection) {

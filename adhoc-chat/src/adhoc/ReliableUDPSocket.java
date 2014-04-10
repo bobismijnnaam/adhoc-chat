@@ -78,16 +78,18 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		sendReliable(chatPacket);
 	}
 
-//	public static void main(String[] args) {
-//	
-//		ChatPacket chatPacket = new ChatPacket(System.currentTimeMillis(), "Hoi Ruben", (byte) 2, nextSeqNr++);
-//		byte[] toSend = chatPacket.compileData();
-//		
-//		UDPPacket udpPacket = UDPPacket.parse(toSend);
-//		System.out.println(udpPacket.getType());
-//		
-//
-//	}
+	public static void main(String[] args) {
+
+		ChatPacket chatPacket = new ChatPacket(System.currentTimeMillis(), "Hoi Ruben", (byte) 2, nextSeqNr++);
+		byte[] toSend = chatPacket.compileData();
+
+		UDPPacket udpPacket = UDPPacket.parse(toSend);
+		if (udpPacket.getType() == UDPPacket.TYPE_CHAT) {
+			System.out.println(((ChatPacket) udpPacket).getMessage());
+		}
+		System.out.println(udpPacket.getType());
+
+	}
 
 	/**
 	 * Add listener
@@ -121,7 +123,8 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				for (Iterator<UDPPacket> iterator = toBeAcked.iterator(); iterator.hasNext();) {
 					UDPPacket p = (UDPPacket) iterator.next();
 					try {
-						socket.sendData(p.getDstAddress(), p.getType(), p.compileData());
+						System.out.println("SENDING ACK " +p.getType());
+						socket.sendData(p.getDstAddress(), (byte) 1, p.compileData());
 						iterator.remove();
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -136,7 +139,8 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 		// get
 		UDPPacket receivedPacket = UDPPacket.parse(packet.getData());
-
+		receivedPacket.setType(packet.getType());
+		System.out.println("GETTING ACK " +receivedPacket.getType());
 		if (receivedPacket.getType() == UDPPacket.TYPE_CHAT) {
 			ChatPacket chatPacket = (ChatPacket) receivedPacket;
 			for (UDPSocketListener l : listeners) {
@@ -164,9 +168,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		}
 	}
 
+	@Override
 	public void removedConnection(Connection connection) {
 		for (UDPSocketListener listener : listeners) {
-			listener.newConnection(connection);
+			listener.removedConnection(connection);
 		}
 	};
 }

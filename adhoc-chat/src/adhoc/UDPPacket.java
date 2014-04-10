@@ -12,6 +12,7 @@ public class UDPPacket {
 	static final byte TYPE_ACK = 1;
 
 	private byte dstAddress;
+	private byte packetType;
 	private int seqNr;
 	private int attemptCount = 0;
 
@@ -20,7 +21,7 @@ public class UDPPacket {
 	private static final long RETRY_TIME = 2500; // 1 sec
 
 	public UDPPacket(byte packetType, byte dstAddress, int seqNr) {
-		// this.packetType = packetType; // 1st byte (already set)
+		this.packetType = packetType; // 1st byte (already set)f
 		this.seqNr = seqNr; // next 4 bytes
 		this.dstAddress = dstAddress; // specified in super header
 		this.nextAttempt = System.currentTimeMillis();
@@ -85,11 +86,12 @@ public class UDPPacket {
 	}
 
 	public byte getType() {
-		if (this instanceof ChatPacket) {
-			return TYPE_CHAT;
-		} else {
-			return TYPE_ACK;
-		}
+		return packetType;
+		// if (this instanceof ChatPacket) {
+		// return TYPE_CHAT;
+		// } else {
+		// return TYPE_ACK;
+		// }
 	}
 
 	public static UDPPacket parse(byte[] data) {
@@ -110,6 +112,10 @@ public class UDPPacket {
 			e.printStackTrace();
 		}
 		return createdPacket;
+	}
+
+	public void setType(byte type) {
+		this.packetType = type;
 	}
 
 }

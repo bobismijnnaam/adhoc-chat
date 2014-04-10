@@ -28,7 +28,7 @@ public class ReliableSocket implements AdhocListener, Runnable {
 	public static void main(String[] args) throws IOException {
 		ReliableSocket reliableSocket = new ReliableSocket("alfred");
 
-		reliableSocket.send(AdhocSocket.MULTICAST_ADDRESS, (byte) 67, new byte[] { 40, 23, 1, 34 });
+		reliableSocket.send((byte) 2, (byte) 67, "haha test".getBytes());
 	}
 
 	public ReliableSocket(String name) throws IOException {

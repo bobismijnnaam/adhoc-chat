@@ -8,21 +8,16 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Observable;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 
-import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
 import adhoc.Packet;
 import adhoc.ReliableSocket;
-import adhoc.UDPSocketListener;
-import adhoc.ReliableUDPSocket;
 
 public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 

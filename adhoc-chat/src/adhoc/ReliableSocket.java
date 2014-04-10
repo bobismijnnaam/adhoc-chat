@@ -114,8 +114,10 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 		socket.sendData(packet);
 
-		unackedPackets.add(packet);
-		resendTimes.put(packet, System.currentTimeMillis() + RESEND_TIME);
+		if (dest != AdhocSocket.MULTICAST_ADDRESS) {
+			unackedPackets.add(packet);
+			resendTimes.put(packet, System.currentTimeMillis() + RESEND_TIME);
+		}
 	}
 
 	public void close() {

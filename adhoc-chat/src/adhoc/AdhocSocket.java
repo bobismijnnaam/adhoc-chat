@@ -32,7 +32,6 @@ public class AdhocSocket implements Runnable {
 	private ArrayList<Connection> connections = new ArrayList<Connection>();
 	private boolean running = true;
 	private byte address;
-	private final String name;
 	private InetAddress inetAddress;
 
 	// used for filtering duplicate packets
@@ -103,8 +102,6 @@ public class AdhocSocket implements Runnable {
 	}
 
 	public AdhocSocket(final String name, final byte[] key) throws IOException {
-		this.name = name;
-
 		socket = new MulticastSocket(PORT);
 
 		address = getLocalAddress();
@@ -237,7 +234,9 @@ public class AdhocSocket implements Runnable {
 					}
 				}
 			}
-		} else {
+		}
+
+		if (dest == address || dest == MULTICAST_ADDRESS) {
 			if (!isDuplicate(id)) {
 				for (AdhocListener listener : listeners) {
 					listener.onReceive(packet);

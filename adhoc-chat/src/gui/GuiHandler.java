@@ -56,6 +56,9 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		frame.setTitle("Adhoc ChatApp");
 		frame.setLocationRelativeTo(null);
 
+		users.put(AdhocSocket.MULTICAST_ADDRESS, "GroupChat");
+		addr.put("GroupChat", AdhocSocket.MULTICAST_ADDRESS);
+
 		// startup
 		loginGUI = new Login();
 		loginGUI.addController(this);
@@ -138,7 +141,6 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		if (main && ((Component) e.getSource()).getName().contains("enter")) {
 			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
 			String group = messageParts[1];
-
 			// process the message
 			processMessage(group);
 		} else {
@@ -179,6 +181,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		// username
 		GradientList.Gradient color = gradients.getGradient(index);
 		colors.put(connection.name, color);
+		System.out.println(colors.size());
 	}
 
 	/**
@@ -254,7 +257,13 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 
-		byte dest = addr.get(username);
+		byte dest;
+		if (username.equals("GroupChat")) {
+			dest = AdhocSocket.MULTICAST_ADDRESS;
+
+		} else {
+			dest = addr.get(username);
+		}
 
 		dataStream.writeLong(System.currentTimeMillis());
 		dataStream.writeUTF(inputMessage);

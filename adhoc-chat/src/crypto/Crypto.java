@@ -24,6 +24,9 @@ import javax.crypto.NoSuchPaddingException;
  * Symmetric encryption: http://www.javamex.com/tutorials/cryptography/block_modes_java.shtml
  */
 public class Crypto {
+	public static final Crypto INSTANCE = new Crypto();
+	
+	
 	public static final int KEY_LENGTH = 1024;
 	public static final String ALGORITHM = "RSA";
 	
@@ -36,7 +39,7 @@ public class Crypto {
 	/**
 	 * Initializes the crypto class. Provides you with two (secure) randomly generated keys: a private and a public key. To retrieve the public key, use the {@link #getMyKey()} method.
 	 */
-	public Crypto() {
+	private Crypto() {
 		try {
 			KeyPairGenerator kpg = KeyPairGenerator.getInstance(ALGORITHM);
 			kpg.initialize(KEY_LENGTH);
@@ -100,19 +103,19 @@ public class Crypto {
 	/**
 	 * @see {@link #decrypt(byte[])}
 	 */
-	public String decrypt(String msg) {
-		return decrypt(msg.getBytes());
-	}
+//	public String decrypt(String msg) {
+//		return decrypt(msg.getBytes());
+//	}
 	
 	/**
 	 * Decrypts a message with this instance's private key, assuming it is encrypted with this instances public key.
 	 * @param msg The message to decrypt
 	 * @return The decrypted message
 	 */
-	public String decrypt(byte[] msg) {
+	public byte[] decrypt(byte[] msg) {
 		try {
 			byte[] decryptedMsg = myCipher.doFinal(msg);
-			return new String(decryptedMsg);
+			return decryptedMsg;
 		}  catch (IllegalBlockSizeException e) {
 			System.out.println("[ERROR] Illegal blocksize");
 			e.printStackTrace();

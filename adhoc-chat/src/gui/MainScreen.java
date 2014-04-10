@@ -48,7 +48,7 @@ public class MainScreen {
 		mainScreen.add(userlist, "w 160px, h 600px");
 	}
 	
-	/*
+	/**
 	 * returns username
 	 */
 	public String getUsername() {
@@ -56,11 +56,11 @@ public class MainScreen {
 	}
 	
 	
-	/*
+	/**
 	 * Change chat, it sets a different chat box
 	 */
 	public void changeChat(String name) {
-		JPanel newScreen = chatScreens.get(name);
+		//JPanel newScreen = chatScreens.get(name);
 		JPanel newTextField = textFields.get(name);
 		Component[] components = fullchat.getComponents();
 		for (int i = 0; i < components.length; i++) {
@@ -77,7 +77,7 @@ public class MainScreen {
 		fullchat.repaint();
 	}
 	
-	/*
+	/**
 	 * Adds a chatwindow and ads the user to the list
 	 */
 	public void addChat(String name, GuiHandler handler) {
@@ -86,9 +86,6 @@ public class MainScreen {
 		}
 		
 		if (!chatScreens.containsKey(name)) {
-			
-			
-			
 			// create the chatwindow and textfield
 			createFullChat(name, handler);
 			// add the user to the list
@@ -99,6 +96,9 @@ public class MainScreen {
 		mainScreen.repaint();
 	}
 	
+	/**
+	 *  Removes the user out of the right window. 
+	 */
 	public void removeUser(String name) {
 		if (users.containsKey(name) && users.get(name).isShowing()) {
 			userlist.remove(users.get(name));
@@ -108,7 +108,7 @@ public class MainScreen {
 		
 	}
 	
-	/*
+	/**
 	 * Adds an user to the userlist
 	 */
 	private void addUser(String name, GuiHandler handler) {
@@ -119,8 +119,8 @@ public class MainScreen {
 		userlist.add(user, "span, w 160px, h 50px");
 	}
 	
-	/*
-	 * Returns a chat screen with send button and puts username and chatpanel in the map.
+	/**
+	 * @Returns a chat screen with send button and puts username and chatpanel in the map.
 	 */
 	private JPanel createFullChat(String name, GuiHandler handler) {
 		JPanel fullChat = new JPanel(new MigLayout());
@@ -155,12 +155,12 @@ public class MainScreen {
 		return realTextFields.get(name);
 	}
 	
-	/*
+	/**
 	 * Adds a message to a chatscreen
 	 */
-	public Message addMessage(String message, String username, String color1, String color2, boolean incoming, String group) {
-		Message newMessage = new Message("<html>"
-                + "<font color=#ffffdd><font size=4><b>" + username + "</b></font><br />" + message + "<br /><font size=2>10:11 4/4/2014</font></font></html>", Color.decode(color1), Color.decode(color2));
+	public Message addMessage(String message, String username, String color1, String color2, boolean incoming, String group, String timeStamp) {
+		Message newMessage = new Message("<html><font color=#ffffdd><font size=4><b>" + username 
+				+ "</b></font><br />" + message + "<br /><font size=2>" + timeStamp + "</font></font></html>", Color.decode(color1), Color.decode(color2));
 		JPanel chatScreen;
 		chatScreen = chatScreens.get(group);
 		if (incoming) {
@@ -193,8 +193,8 @@ public class MainScreen {
 		scrollpane.revalidate();
 	}
 	
-	/*
-	 * Returns the send button and input bar
+	/**
+	 * @Returns the send button and input bar
 	 */
 	private JPanel createSendButton(GuiHandler handler, String name) {
 		GradientPanel sendButton = new GradientPanel(new MigLayout(), Color.DARK_GRAY, Color.DARK_GRAY);
@@ -217,8 +217,8 @@ public class MainScreen {
 		return sendButton;
 	}
 	
-	/*
-	 * returns a chatScreen
+	/**
+	 * @returns a chatScreen
 	 */
 	private JPanel createChatScreen() {
 		GradientPanel chatScreen = new GradientPanel(new MigLayout(), Color.DARK_GRAY, Color.DARK_GRAY);
@@ -227,8 +227,8 @@ public class MainScreen {
 		return chatScreen;
 	}
 	
-	/*
-	 * Returns the mainScreen
+	/**
+	 * @Returns the mainScreen
 	 */
 	public JPanel returnPanel() {
 		return mainScreen;

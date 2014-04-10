@@ -26,13 +26,13 @@ public class ReliableSocket implements AdhocListener, Runnable {
 	private ArrayList<AdhocListener> listeners = new ArrayList<AdhocListener>();
 
 	public static void main(String[] args) throws IOException {
-		ReliableSocket reliableSocket = new ReliableSocket("alfred");
+		ReliableSocket reliableSocket = new ReliableSocket("alfred", new byte[0]);
 
-		reliableSocket.send(AdhocSocket.MULTICAST_ADDRESS, (byte) 67, new byte[] { 40, 23, 1, 34 });
+		reliableSocket.send((byte) 2, (byte) 67, "haha test".getBytes());
 	}
 
-	public ReliableSocket(String name) throws IOException {
-		socket = new AdhocSocket(name);
+	public ReliableSocket(String name, byte[] key) throws IOException {
+		socket = new AdhocSocket(name, key);
 		socket.addListener(this);
 
 		new Thread(this).start();

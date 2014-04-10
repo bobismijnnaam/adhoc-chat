@@ -119,8 +119,8 @@ public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListe
 					String[] messageParts = ((Component) e.getSource()).getName().split("send");
 					String message = mainScreen.getMessage(messageParts[1]);
 					// send chatmessage
-					UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
 					if (!message.equals("") && message.trim().length() > 0 ) {
+						UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
 						Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
 						frame.pack();
 						mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
@@ -164,7 +164,7 @@ public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListe
 	@Override
 	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
 			String message) {
-		System.out.println(timestampMillis);
+		//System.out.println(timestampMillis);
 		String username = users.get(sourceAddress);
 		System.out.println("Received message from" + username + message);
 		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);

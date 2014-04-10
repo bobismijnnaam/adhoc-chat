@@ -164,9 +164,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		}
 	}
 
+	@Override
 	public void removedConnection(Connection connection) {
 		for (UDPSocketListener listener : listeners) {
-			listener.newConnection(connection);
+			listener.removedConnection(connection);
 		}
 	};
 }

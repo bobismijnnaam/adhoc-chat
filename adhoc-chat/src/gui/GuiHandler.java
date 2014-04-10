@@ -14,6 +14,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 
+import util.GradientList;
+
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
 import adhoc.Packet;
@@ -29,6 +31,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 	private boolean main = false;
 	private HashMap<Byte, String> users = new HashMap<Byte, String>();
 	private HashMap<String, Byte> addr = new HashMap<String, Byte>();
+	private HashMap<String, GradientList.Gradient> colors = new HashMap<String, GradientList.Gradient>();
 	private ReliableSocket socket;
 	
 	public GuiHandler() {
@@ -163,6 +166,12 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 		mainScreen.addChat(connection.name, this);
 		users.put(connection.address, connection.name);
 		addr.put(connection.name, connection.address);
+		GradientList gradients = new GradientList();
+		int index = colors.size();
+		index = index % 8;
+		
+		GradientList.Gradient color = gradients.getGradient(index);
+		colors.put(connection.name, color);
 	}
 	
 	@Override
@@ -183,12 +192,16 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 				long timestamp = dataStream.readLong();
 				String message = dataStream.readUTF();
 				String username = users.get(addr);
-				Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
+				GradientList.Gradient color = colors.get(username);
+				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true, username);
 				frame.pack();
 				mainScreen.addSize(newMessage.getBounds().y, username);
 				frame.pack();
 				mainScreen.scrollDown(username);
 				frame.pack();
+				mainScreen.scrollDown(username);
+				frame.revalidate();
+				frame.repaint();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -213,20 +226,5 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 	public static void main(String[] args) {
 		// guihandler
 		GuiHandler handler = new GuiHandler();
-		
 	}
-
-//	@Override
-//	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
-//			String message) {
-//		//System.out.println(timestampMillis);
-//		String username = users.get(sourceAddress);
-//		System.out.println("Received message from" + username + message);
-//		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
-//		frame.pack();
-//		mainScreen.addSize(newMessage.getBounds().y, username);
-//		frame.pack();
-//		mainScreen.scrollDown(username);
-//		frame.pack();
-//	}
 }

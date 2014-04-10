@@ -80,7 +80,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 * @param message
 	 */
 	public void sendChatMessage(byte dstAddress, long timeStamp, String message) {
-		System.out.println(message);
 		UdpPacket chatPacket = new UdpPacket(UdpPacket.TYPE_CHAT, dstAddress, nextSeqNr++, timeStamp, message);
 		sendReliable(dstAddress, chatPacket.compileData());
 	}
@@ -152,7 +151,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 				long timestampMillis = dataStream.readLong();
 				String message = dataStream.readUTF();
-				System.out.println(message);
 
 				for (PrivateMessageListener l : listeners) {
 					l.onReceiveMessage(packet.getSourceAddress(), timestampMillis, message);
@@ -206,15 +204,14 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			this.nextAttempt = System.currentTimeMillis();
 		}
 
-		public UdpPacket(byte packetType, byte dstAddress, int seqNr, long timeStamp, String inputMessage) {
+		public UdpPacket(byte packetType, byte dstAddress, int seqNr, long timeStamp, String message) {
 			this.packetType = packetType; // 1st byte
 			this.seqNr = seqNr; // next 4 bytes
 			this.dstAddress = dstAddress; // specified in super header
 			this.nextAttempt = System.currentTimeMillis();
 
 			this.timeStamp = timeStamp;
-			this.message = inputMessage;
-			System.out.println(this.message);
+			this.message = message;
 		}
 
 		public byte[] compileData() {
@@ -225,8 +222,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				dataStream.writeInt(seqNr);
 				if (packetType == TYPE_CHAT) {
 					dataStream.writeLong(timeStamp);
-					//String message = "test";
-					dataStream.writeUTF(this.message);
+					dataStream.writeUTF(message);
 				}
 			} catch (IOException e) {
 				System.out.println("ERROR COMPILING UDP PACKET!");

@@ -22,5 +22,7 @@ public class Connection {
 		
 		publicKey = new byte[Crypto.KEY_LENGTH];
 		byteStream.read(publicKey);
+		
+		Crypto.INSTANCE.addClient(address, publicKey);
 	}
 }

@@ -19,12 +19,12 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 * unackedPackets - List of packets sent from 'this' client, not yet
 	 * confirmed to be received
 	 */
-	private List<UDPPacket> unackedPackets = new ArrayList<UDPPacket>();
+	private List<ChatPacket> unackedPackets = new ArrayList<ChatPacket>();
 
 	/**
 	 * toBeAcked - List of acks needed to be sent back to message's the origin
 	 */
-	private List<UDPPacket> toBeAcked = new ArrayList<UDPPacket>();
+	private List<ChatPacket> toBeAcked = new ArrayList<ChatPacket>();
 
 	/**
 	 * listeners - registered listeners for chat-messages
@@ -53,20 +53,6 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	}
 
 	/**
-	 * Add to sending queue
-	 * 
-	 * @param dstAddress
-	 *            -
-	 * @param data
-	 *            -- underlying data (e.g. textchat)
-	 */
-	public void sendReliable(UDPPacket packet) {
-		synchronized (unackedPackets) {
-			unackedPackets.add(packet);
-		}
-	}
-
-	/**
 	 * Send a chat
 	 * 
 	 * @param dstAddress
@@ -75,21 +61,23 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 	 */
 	public void sendChatMessage(byte dstAddress, long timeStamp, String message) {
 		ChatPacket chatPacket = new ChatPacket(timeStamp, message, dstAddress, nextSeqNr++);
-		sendReliable(chatPacket);
-	}
-
-	public static void main(String[] args) {
-
-		ChatPacket chatPacket = new ChatPacket(System.currentTimeMillis(), "Hoi Ruben", (byte) 2, nextSeqNr++);
-		byte[] toSend = chatPacket.compileData();
-
-		UDPPacket udpPacket = UDPPacket.parse(toSend);
-		if (udpPacket.getType() == UDPPacket.TYPE_CHAT) {
-			System.out.println(((ChatPacket) udpPacket).getMessage());
+		synchronized (unackedPackets) {
+			unackedPackets.add(chatPacket);
 		}
-		System.out.println(udpPacket.getType());
-
 	}
+
+	// public static void main(String[] args) {
+	//
+	// UDPPacket chatPacket = new UDPPacket((byte) 1, (byte) 4, 123);
+	// byte[] toSend = chatPacket.compileData();
+	//
+	// UDPPacket udpPacket = UDPPacket.parse(toSend);
+	// if (udpPacket.getType() == UDPPacket.TYPE_CHAT) {
+	// System.out.println(((ChatPacket) udpPacket).getMessage());
+	// }
+	// System.out.println(udpPacket.getType());
+	//
+	// }
 
 	/**
 	 * Add listener
@@ -105,12 +93,11 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 		while (true) {
 			long now = System.currentTimeMillis();
 			synchronized (unackedPackets) {
-				for (UDPPacket packet : unackedPackets) {
+				for (ChatPacket packet : unackedPackets) {
 					if (packet.shouldSend(now)) {
 						try {
-							// System.out.println("SEND PKT=" + packet.seqNr +
-							// " ATTEMPT=" + packet.attemptCount);
-							socket.sendData(packet.getDstAddress(), packet.getType(), packet.compileData());
+							System.out.println("Sending Chat ");
+							socket.sendData(packet.getDstAddress(), (byte) 0, packet.compileData());
 							packet.onSend();
 						} catch (IOException e) {
 							socket.close();
@@ -120,10 +107,10 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				}
 			}
 			synchronized (toBeAcked) {
-				for (Iterator<UDPPacket> iterator = toBeAcked.iterator(); iterator.hasNext();) {
-					UDPPacket p = (UDPPacket) iterator.next();
+				for (Iterator<ChatPacket> iterator = toBeAcked.iterator(); iterator.hasNext();) {
+					ChatPacket p = (ChatPacket) iterator.next();
 					try {
-						System.out.println("###### SENDING ACK " +p.getType());
+						System.out.println("SENDING ACK " + p.getType());
 						socket.sendData(p.getDstAddress(), (byte) 1, p.compileData());
 						iterator.remove();
 					} catch (IOException e) {
@@ -139,8 +126,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 
 		// get
 		UDPPacket receivedPacket = UDPPacket.parse(packet.getData());
-		receivedPacket.setType(packet.getType());
-		System.out.println("GETTING ACK " +receivedPacket.getType());
+
 		if (receivedPacket.getType() == UDPPacket.TYPE_CHAT) {
 			ChatPacket chatPacket = (ChatPacket) receivedPacket;
 			for (UDPSocketListener l : listeners) {
@@ -152,10 +138,11 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 			}
 		}
 
-		else if (receivedPacket.getType() == UDPPacket.TYPE_ACK) {
+		else {
+			System.out.println(" RECEIVED ACK : !!!!!!!!!!!!!!!");
 			synchronized (unackedPackets) {
 				boolean success = unackedPackets.remove(receivedPacket);
-				System.out.println(" Packet Acked succes? : " + success);
+				System.out.println(" SUCCESS " +success);
 			}
 		}
 

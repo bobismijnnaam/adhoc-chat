@@ -86,7 +86,7 @@ public class UDPPacket {
 	}
 
 	public byte getType() {
-		return packetType;
+		return (byte) 1;
 		// if (this instanceof ChatPacket) {
 		// return TYPE_CHAT;
 		// } else {

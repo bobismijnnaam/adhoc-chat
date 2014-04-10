@@ -15,6 +15,7 @@ public class ChatPacket extends UDPPacket {
 		super(UDPPacket.TYPE_CHAT, dstAddress, seqNr);
 		this.message = message;
 		this.timestamp = timestamp;
+		this.setType(TYPE_CHAT);
 	}
 
 	public ChatPacket(ByteArrayInputStream byteStream) throws IOException {
@@ -41,6 +42,10 @@ public class ChatPacket extends UDPPacket {
 
 	public long getTimeStamp() {
 		return timestamp;
+	}
+	
+	public byte getType(){
+		return (byte) 0;
 	}
 
 }

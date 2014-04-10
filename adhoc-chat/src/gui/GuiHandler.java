@@ -16,10 +16,10 @@ import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
 import adhoc.Packet;
-import adhoc.PrivateMessageListener;
+import adhoc.UDPSocketListener;
 import adhoc.ReliableUDPSocket;
 
-public class GuiHandler implements java.awt.event.ActionListener, AdhocListener, PrivateMessageListener {
+public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListener {
 
 	// the loginGUI
 	private Login loginGUI;
@@ -58,13 +58,13 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 		// check username
 		if (loginGUI.getUsername().matches("\\w{3,}+")) {
 			
-			try {
-				socket = new AdhocSocket(loginGUI.getUsername());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			socket.addListener(this);
+//			try {
+//				socket = new AdhocSocket(loginGUI.getUsername());
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//			socket.addListener(this);
 			UDPsocket = new ReliableUDPSocket(loginGUI.getUsername());
 			UDPsocket.registerListener(this);
 			
@@ -108,33 +108,37 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 				mainScreen.scrollDown(messageParts[1]);
 			}
 		} else {
-			JButton source = (JButton) e.getSource();
-			// if the user wants to login
-			if (source.getName().equals("login")) {
+			if (((Component) e.getSource()).getName().equals("loginkey")) {
 				tryLogin(loginGUI.getUsername());
-			} else if (source.getName().contains("send")) {
-				String[] messageParts = ((Component) e.getSource()).getName().split("send");
-				String message = mainScreen.getMessage(messageParts[1]);
-				// send chatmessage
-				UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
-				if (!message.equals("") && message.trim().length() > 0 ) {
-					Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
-					frame.pack();
-					mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
-					frame.pack();
-					mainScreen.scrollDown(messageParts[1]);
-				}
 			} else {
-				mainScreen.changeChat(source.getName());
+				JButton source = (JButton) e.getSource();
+				// if the user wants to login
+				if (source.getName().equals("login")) {
+					tryLogin(loginGUI.getUsername());
+				} else if (source.getName().contains("send")) {
+					String[] messageParts = ((Component) e.getSource()).getName().split("send");
+					String message = mainScreen.getMessage(messageParts[1]);
+					// send chatmessage
+					if (!message.equals("") && message.trim().length() > 0 ) {
+						UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
+						Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
+						frame.pack();
+						mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
+						frame.pack();
+						mainScreen.scrollDown(messageParts[1]);
+					}
+				} else {
+					mainScreen.changeChat(source.getName());
+				}
 			}
 		}
 	}
 	
-	@Override
-	public void onReceive(Packet packet) {
-		// TODO Auto-generated method stub
-		System.out.println("JEEJ EEN PAKKET");
-	}
+//	@Override
+//	public void onReceive(Packet packet) {
+//		// TODO Auto-generated method stub
+//		System.out.println("JEEJ EEN PAKKET");
+//	}
 
 	@Override
 	public void newConnection(Connection connection) {
@@ -160,8 +164,9 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 	@Override
 	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
 			String message) {
+		//System.out.println(timestampMillis);
 		String username = users.get(sourceAddress);
-		System.out.println("Received message from" + username);
+		System.out.println("Received message from" + username + message);
 		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
 		frame.pack();
 		mainScreen.addSize(newMessage.getBounds().y, username);

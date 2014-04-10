@@ -227,6 +227,9 @@ public class Crypto {
 		for (int i = 0; i < receivers.length; i++) {
 			if (i != sender) {
 				encryptedMsg = receivers[sender].encrypt((byte) i, msg);
+				
+				System.out.println("Encrypted with public key of client " + i + ": " + new String(encryptedMsg));
+				
 				System.out.println("Receiver " + i + " result: " + receivers[i].decrypt(encryptedMsg));
 			}
 		}

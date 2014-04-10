@@ -2,6 +2,10 @@ package gui;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -104,7 +108,13 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 			String message = mainScreen.getMessage(messageParts[1]);
 			if (!message.equals("") && message.trim().length() > 0 ) {
 				// send chatmessage
-				UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
+				try {
+					sendMessage(message, messageParts[1]);
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				//UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
 				Message newMessage;
 				newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
 				frame.pack();
@@ -125,7 +135,13 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 					String message = mainScreen.getMessage(messageParts[1]);
 					// send chatmessage
 					if (!message.equals("") && message.trim().length() > 0 ) {
-						UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
+						try {
+							sendMessage(message, messageParts[1]);
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						//UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
 						Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
 						frame.pack();
 						mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
@@ -161,6 +177,44 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 		mainScreen.changeChat("GroupChat");
 	}
 	
+	@Override
+	public void onReceive(Packet packet) {
+		System.out.println("Receive not ack packet");
+		if (packet.getType() == (byte) 1) {
+			try {
+				System.out.println("Received a message");
+				DataInputStream dataStream = new DataInputStream(new ByteArrayInputStream(packet.getData()));
+				byte addr = packet.getSourceAddress();
+				long timestamp = dataStream.readLong();
+				String message = dataStream.readUTF();
+				String username = users.get(addr);
+				Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
+				frame.pack();
+				mainScreen.addSize(newMessage.getBounds().y, username);
+				frame.pack();
+				mainScreen.scrollDown(username);
+				frame.pack();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+	}
+	
+	private void sendMessage(String inputMessage, String username) throws IOException {
+		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+		DataOutputStream dataStream = new DataOutputStream(byteStream);
+
+		dataStream.writeLong(System.currentTimeMillis());
+		dataStream.writeUTF(inputMessage);
+		
+		byte dest = addr.get(username);
+		
+		socket.send(dest, (byte) 1, byteStream.toByteArray());
+		System.out.println("Send message");
+	}
+	
 	public static void main(String[] args) {
 		// guihandler
 		GuiHandler handler = new GuiHandler();
@@ -180,8 +234,4 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 //		mainScreen.scrollDown(username);
 //		frame.pack();
 //	}
-
-	@Override
-	public void onReceive(Packet packet) {
-	}
 }

@@ -50,9 +50,9 @@ public class AdhocSocket implements Runnable {
 		// }
 		//
 		// adhocSocket.close();
-		
+
 		AdhocSocket adhocSocket = new AdhocSocket(args[0], new byte[0]);
-		
+
 		AdhocListener ahListener = new AdhocListener() {
 			@Override
 			public void onReceive(Packet packet) {
@@ -72,36 +72,36 @@ public class AdhocSocket implements Runnable {
 			public void removedConnection(Connection connection) {
 				System.out.println("[UNIT TEST] Removed connection: " + connection.name);
 			}
-			
+
 		};
-		
+
 		adhocSocket.addListener(ahListener);
-		
+
 		byte client1 = (byte) 1;
 		byte client2 = (byte) 2;
-		
+
 		if (args[0].equals("client1")) {
-			
+
 			Thread.sleep(2000);
-			
+
 			adhocSocket.sendData(client1, (byte) 1, "TESTMESSAGE1".getBytes());
-			
+
 			Thread.sleep(2000);
-			
-			adhocSocket.sendData(client1, (byte) 1, "TESTMESSAGE3".getBytes()); 
+
+			adhocSocket.sendData(client1, (byte) 1, "TESTMESSAGE3".getBytes());
 		} else {
 			Thread.sleep(3000);
-			
+
 			adhocSocket.sendData(client2, (byte) 1, "TESTMESSAGE2".getBytes());
-			
+
 			Thread.sleep(2000);
-			
+
 			adhocSocket.sendData(client2, (byte) 1, "TESTMESSAGE4".getBytes());
 		}
-		
+
 		adhocSocket.close();
 	}
-	
+
 	public AdhocSocket(final String name, final byte[] key) throws IOException {
 		this.name = name;
 
@@ -171,7 +171,9 @@ public class AdhocSocket implements Runnable {
 
 				System.out.println(address);
 
-				if (address.getHostAddress().matches("192\\.168\\.5\\..{1,3}")) {
+				byte[] bytes = address.getAddress();
+
+				if (bytes[0] == (byte) 192 && bytes[1] == (byte) 168 && bytes[2] == (byte) 5) {
 					return address.getAddress()[3];
 				}
 			}

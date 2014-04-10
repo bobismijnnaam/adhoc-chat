@@ -72,7 +72,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 //			}
 //			socket.addListener(this);
 			try {
-				socket = new ReliableSocket(username);
+				socket = new ReliableSocket(username, Crypto.INSTANCE.getMyKey());
 				socket.addListener(this);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

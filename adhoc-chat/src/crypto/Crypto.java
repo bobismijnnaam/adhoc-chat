@@ -21,6 +21,7 @@ import javax.crypto.NoSuchPaddingException;
  * @author Bob Rubbens, One Million Inc.
  * Instantiation provides a public and private key. Call getMyKey() to obtain the public key. Use addClient() and removeClient() to manage clients. Use encrypt() and decrypt() to encrypt and decrypt messages respectively.
  * Inspired by: http://www.javamex.com/tutorials/cryptography/rsa_encryption_2.shtml
+ * Symmetric encryption: http://www.javamex.com/tutorials/cryptography/block_modes_java.shtml
  */
 public class Crypto {
 	public static final int KEY_LENGTH = 1024;

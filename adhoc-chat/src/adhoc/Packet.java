@@ -7,7 +7,7 @@ public class Packet {
 	public static final int TYPE_CHAT_PRIVATE	= 1;
 	public static final int TYPE_LEAVE	 		= 2;
 	public static final int TYPE_ACK 			= 3;
-	public static final int TYPE_CHAT_GROUP 	= 4;
+	public static final byte TYPE_FILE 			= 4;
 	
 	private byte sourceAddress, destAddress, hopCount, type;
 	private byte[] data;

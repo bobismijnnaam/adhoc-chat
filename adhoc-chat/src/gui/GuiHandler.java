@@ -179,9 +179,11 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 
 		// picks a color from the gradientcolor list and associates it with the
 		// username
-		GradientList.Gradient color = gradients.getGradient(index);
-		colors.put(connection.name, color);
-		System.out.println(colors.size());
+		if (!colors.containsKey(connection.name)) {
+			GradientList.Gradient color = gradients.getGradient(index);
+			colors.put(connection.name, color);
+			System.out.println(colors.size());
+		}
 	}
 
 	/**

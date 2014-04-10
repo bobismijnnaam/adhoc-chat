@@ -12,7 +12,7 @@ import java.util.Random;
 import adhoc.AdhocSocket.AdhocListener;
 
 public class ReliableSocket implements AdhocListener, Runnable {
-	private static final byte ACK_TYPE = 3;
+	private static final byte ACK_TYPE = 2;
 
 	private static final long RESEND_TIME = 1000;
 
@@ -71,6 +71,7 @@ public class ReliableSocket implements AdhocListener, Runnable {
 				}
 
 				unackedPackets.remove(ackedPacket);
+				resendTimes.remove(ackedPacket);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -117,8 +118,15 @@ public class ReliableSocket implements AdhocListener, Runnable {
 		resendTimes.put(packet, System.currentTimeMillis() + RESEND_TIME);
 	}
 
+	public void close() {
+		socket.close();
+	}
+
 	@Override
 	public void newConnection(Connection connection) {
+		for (AdhocListener listener : listeners) {
+			listener.newConnection(connection);
+		}
 	}
 
 	@Override
@@ -126,10 +134,17 @@ public class ReliableSocket implements AdhocListener, Runnable {
 		ArrayList<Packet> removals = new ArrayList<Packet>();
 
 		for (Packet p : unackedPackets) {
-			if (p.getDestAddress() == connection.address)
+			if (p.getDestAddress() == connection.address) {
 				removals.add(p);
+
+				resendTimes.remove(p);
+			}
 		}
 
 		unackedPackets.removeAll(removals);
+
+		for (AdhocListener listener : listeners) {
+			listener.removedConnection(connection);
+		}
 	}
 }

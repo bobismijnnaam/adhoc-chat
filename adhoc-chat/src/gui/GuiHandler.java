@@ -153,6 +153,7 @@ public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListe
 	public void removedConnection(Connection connection) {
 		System.out.println("EEN CONNECTIE GING WEG");
 		mainScreen.removeUser(connection.name);
+		mainScreen.changeChat("GroupChat");
 	}
 	
 	public static void main(String[] args) {

@@ -123,7 +123,7 @@ public class ReliableUDPSocket implements Runnable, AdhocListener {
 				for (Iterator<UDPPacket> iterator = toBeAcked.iterator(); iterator.hasNext();) {
 					UDPPacket p = (UDPPacket) iterator.next();
 					try {
-						System.out.println("SENDING ACK " +p.getType());
+						System.out.println("###### SENDING ACK " +p.getType());
 						socket.sendData(p.getDstAddress(), (byte) 1, p.compileData());
 						iterator.remove();
 					} catch (IOException e) {

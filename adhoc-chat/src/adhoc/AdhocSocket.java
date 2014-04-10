@@ -41,9 +41,7 @@ public class AdhocSocket implements Runnable {
 
 	private final Random random = new Random();
 
-	public static void main(String[] args) throws IOException {
-		AdhocSocket adhocSocket = new AdhocSocket("test");
-
+	public static void main(String[] args) throws IOException, InterruptedException {
 		// try {
 		// Thread.sleep(5000);
 		// } catch (InterruptedException e) {
@@ -52,6 +50,56 @@ public class AdhocSocket implements Runnable {
 		// }
 		//
 		// adhocSocket.close();
+		
+		AdhocSocket adhocSocket = new AdhocSocket(args[0]);
+		
+		AdhocListener ahListener = new AdhocListener() {
+			@Override
+			public void onReceive(Packet packet) {
+				if (packet.getType() == BROADCAST_TYPE) {
+					System.out.println("[UNIT TEST] Received broadcast");
+				} else {
+					System.out.println("[UNIT TEST] Received message: " + new String(packet.getData()));
+				}
+			}
+
+			@Override
+			public void newConnection(Connection connection) {
+				System.out.println("[UNIT TEST] New connection: " + connection.name);
+			}
+
+			@Override
+			public void removedConnection(Connection connection) {
+				System.out.println("[UNIT TEST] Removed connection: " + connection.name);
+			}
+			
+		};
+		
+		adhocSocket.addListener(ahListener);
+		
+		byte client1 = (byte) 1;
+		byte client2 = (byte) 2;
+		
+		if (args[0].equals("client1")) {
+			
+			Thread.sleep(2000);
+			
+			adhocSocket.sendData(client1, (byte) 1, "TESTMESSAGE1".getBytes());
+			
+			Thread.sleep(2000);
+			
+			adhocSocket.sendData(client1, (byte) 1, "TESTMESSAGE3".getBytes()); 
+		} else {
+			Thread.sleep(3000);
+			
+			adhocSocket.sendData(client2, (byte) 1, "TESTMESSAGE2".getBytes());
+			
+			Thread.sleep(2000);
+			
+			adhocSocket.sendData(client2, (byte) 1, "TESTMESSAGE4".getBytes());
+		}
+		
+		adhocSocket.close();
 	}
 
 	public AdhocSocket(final String name) throws IOException {

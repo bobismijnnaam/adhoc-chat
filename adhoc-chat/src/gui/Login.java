@@ -50,10 +50,12 @@ public class Login {
 	
 	public void addController(GuiHandler handler){
         enter.addActionListener(handler);
+        username.addActionListener(handler);
 	} //addController()
 	
 	public void removeController(GuiHandler handler) {
 		enter.removeActionListener(handler);
+		username.removeActionListener(handler);
 	}
 	
 	/*
@@ -94,6 +96,7 @@ public class Login {
 	private void initialize() {
 		// username
 		username.setText("Enter username");
+		username.setName("loginkey");
 	    username.setBorder(BorderFactory.createCompoundBorder(
 	            username.getBorder(), 
 	            BorderFactory.createEmptyBorder(5, 10, 5, 5)));

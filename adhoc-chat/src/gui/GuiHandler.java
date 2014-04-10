@@ -14,14 +14,18 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 
+import crypto.Crypto;
+
 import util.GradientList;
 
 import adhoc.AdhocSocket.AdhocListener;
+import adhoc.AdhocSocket;
 import adhoc.Connection;
 import adhoc.Packet;
 import adhoc.ReliableSocket;
 
 public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
+	private static final byte CHAT_TYPE = 1;
 
 	// the loginGUI
 	private Login loginGUI;
@@ -187,8 +191,19 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 		if (packet.getType() == (byte) 1) {
 			try {
 				System.out.println("Received a message");
-				DataInputStream dataStream = new DataInputStream(new ByteArrayInputStream(packet.getData()));
+				
+				byte[] data = null;
+				
 				byte addr = packet.getSourceAddress();
+				
+				if(addr == AdhocSocket.MULTICAST_ADDRESS){
+					data = packet.getData();
+				}else{
+					data = Crypto.INSTANCE.decrypt(packet.getData());
+				}
+				
+				DataInputStream dataStream = new DataInputStream(new ByteArrayInputStream(data));
+				
 				long timestamp = dataStream.readLong();
 				String message = dataStream.readUTF();
 				String username = users.get(addr);
@@ -213,13 +228,17 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 	private void sendMessage(String inputMessage, String username) throws IOException {
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
-
-		dataStream.writeLong(System.currentTimeMillis());
-		dataStream.writeUTF(inputMessage);
 		
 		byte dest = addr.get(username);
 		
-		socket.send(dest, (byte) 1, byteStream.toByteArray());
+		dataStream.writeLong(System.currentTimeMillis());
+		dataStream.writeUTF(inputMessage);
+		
+		if(username.equals("GroupChat")){
+			socket.send(dest, CHAT_TYPE, byteStream.toByteArray());
+		}else{
+			socket.send(dest, CHAT_TYPE, Crypto.INSTANCE.encrypt(dest, byteStream.toByteArray()));
+		}
 		System.out.println("Send message");
 	}
 	

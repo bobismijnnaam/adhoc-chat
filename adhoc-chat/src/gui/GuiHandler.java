@@ -168,7 +168,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 		addr.put(connection.name, connection.address);
 		GradientList gradients = new GradientList();
 		int index = colors.size();
-		index = index % 8;
+		index = index % 6;
 		
 		GradientList.Gradient color = gradients.getGradient(index);
 		colors.put(connection.name, color);

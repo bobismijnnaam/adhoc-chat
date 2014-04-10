@@ -16,12 +16,13 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
+import util.Util;
+
 /**
  * 
  * @author Bob Rubbens, One Million Inc.
  * Instantiation provides a public and private key. Call getMyKey() to obtain the public key. Use addClient() and removeClient() to manage clients. Use encrypt() and decrypt() to encrypt and decrypt messages respectively.
- * Inspired by: http://www.javamex.com/tutorials/cryptography/rsa_encryption_2.shtml
- * Symmetric encryption: http://www.javamex.com/tutorials/cryptography/block_modes_java.shtml
+ * 
  */
 public class Crypto {
 	public static final Crypto INSTANCE = new Crypto();
@@ -80,32 +81,13 @@ public class Crypto {
 		if (!ciphers.containsKey(client)) {
 			throw new NullPointerException("[Crypto] Client " + client + " unknown");
 		} else {
-			try {
-				Cipher clientCipher = ciphers.get(client);
-				
-				byte[] encryptedMsg = clientCipher.doFinal(receivedMsg);
-				
-				return encryptedMsg;
-			} catch (IllegalBlockSizeException e) {
-				System.out.println("[ERROR] Illegal blocksize");
-				e.printStackTrace();
-				
-				return null;
-			} catch (BadPaddingException e) {
-				System.out.println("[ERROR] Bad padding");
-				e.printStackTrace();
-				
-				return null;
-			}
+			Cipher clientCipher = ciphers.get(client);
+			
+			byte[] encryptedMsg = blockCipher(receivedMsg, clientCipher, Cipher.ENCRYPT_MODE);
+			
+			return encryptedMsg;
 		}
 	}
-	
-	/**
-	 * @see {@link #decrypt(byte[])}
-	 */
-//	public String decrypt(String msg) {
-//		return decrypt(msg.getBytes());
-//	}
 	
 	/**
 	 * Decrypts a message with this instance's private key, assuming it is encrypted with this instances public key.
@@ -113,20 +95,67 @@ public class Crypto {
 	 * @return The decrypted message
 	 */
 	public byte[] decrypt(byte[] msg) {
-		try {
-			byte[] decryptedMsg = myCipher.doFinal(msg);
-			return decryptedMsg;
-		}  catch (IllegalBlockSizeException e) {
-			System.out.println("[ERROR] Illegal blocksize");
-			e.printStackTrace();
+		byte[] decryptedMsg = blockCipher(msg, myCipher, Cipher.DECRYPT_MODE);
+		return decryptedMsg;
+	}
+	
+	// TODO: Random initialisation vector
+	/**
+	 * Performs a block cipher using the given cipher.
+	 * @param input The byte array to encrypt
+	 * @param cipher
+	 * @param mode
+	 * @return
+	 */
+	public byte[] blockCipher(byte[] input, Cipher cipher, int mode) {
+		int length = mode == Cipher.ENCRYPT_MODE ? 100 : 128;
+		
+		byte[] encryptedBlock = new byte[0];
+		byte[] encryptedMsg = new byte[0];
+		byte[] buffer = new byte[length];
+		
+		for (int i = 0; i < input.length; i++) {
+			if (i > 0 && i % length == 0) {
+				try {
+					encryptedBlock = cipher.doFinal(buffer);
+				} catch (IllegalBlockSizeException e) {
+					System.out.println("[ERROR] Illegal block size");
+					e.printStackTrace();
+					System.exit(1);
+				} catch (BadPaddingException e) {
+					System.out.println("[ERROR] Bad padding");
+					e.printStackTrace();
+					System.exit(1);
+				}
+				
+				encryptedMsg = Util.append(encryptedMsg, encryptedBlock);
+				
+				int newLength = length;
+				if (i + length > input.length) {
+					newLength = input.length - i;
+				}
+				
+				buffer = new byte[newLength];
+			}
 			
-			return null;
+			buffer[i % length] = input[i];
+		}
+		
+		try {
+			encryptedBlock = cipher.doFinal(buffer);
+		} catch (IllegalBlockSizeException e) {
+			System.out.println("[ERROR] Illegal block size");
+			e.printStackTrace();
+			System.exit(1);
 		} catch (BadPaddingException e) {
 			System.out.println("[ERROR] Bad padding");
 			e.printStackTrace();
-			
-			return null;
+			System.exit(1);
 		}
+		
+		encryptedMsg = Util.append(encryptedMsg, encryptedBlock);
+		
+		return encryptedMsg;
 	}
 	
 	/**
@@ -209,8 +238,14 @@ public class Crypto {
 		cryptos[2].addClient((byte) 1, cryptos[1].getMyKey());
 		
 		String msg = "Foo";
+		System.out.println("Short test [Foo]\n");
 		
-		System.out.println();
+		Crypto.testMsg(0, msg, cryptos);
+		Crypto.testMsg(1, msg, cryptos);
+		Crypto.testMsg(2, msg, cryptos);
+		
+		msg = "BarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBar";
+		System.out.println("Long test [Bar*lots]\n");
 		
 		Crypto.testMsg(0, msg, cryptos);
 		Crypto.testMsg(1, msg, cryptos);
@@ -232,9 +267,9 @@ public class Crypto {
 			if (i != sender) {
 				encryptedMsg = receivers[sender].encrypt((byte) i, msg);
 				
-				System.out.println("Encrypted with public key of client " + i + ": " + new String(encryptedMsg));
+				System.out.println("Encrypted with public key of client " + i + ": " + Util.toHex(encryptedMsg));
 				
-				System.out.println("Receiver " + i + " result: " + receivers[i].decrypt(encryptedMsg));
+				System.out.println("Receiver " + i + " result: " + new String(receivers[i].decrypt(encryptedMsg)));
 			}
 		}
 		

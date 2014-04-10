@@ -46,7 +46,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	private ReliableSocket socket;
 
 	// data format
-	private DateFormat df = new SimpleDateFormat("dd:MM:yy:HH:mm:ss");
+	private DateFormat df = new SimpleDateFormat("dd-MM-yy 'at' HH:mm:ss");
 
 	public GuiHandler() {
 		// JFrame
@@ -94,8 +94,8 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			mainScreen.addChat("GroupChat", this);
 			mainScreen.changeChat("GroupChat");
 			frame.add(mainScreenPanel);
-			frame.setLocationRelativeTo(null);
 			frame.pack();
+			frame.setLocationRelativeTo(null);
 		} else {
 			// give feedback that the username is bad
 			loginGUI.setUsernameBad();
@@ -200,7 +200,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	@Override
 	public void onReceive(Packet packet) {
 		System.out.println("Receive not ack packet");
-		if (packet.getType() == (byte) 1) {
+		if (packet.getType() == CHAT_TYPE) {
 			try {
 				System.out.println("Received a message");
 				byte[] data = null;

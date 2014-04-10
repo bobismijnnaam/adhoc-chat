@@ -7,6 +7,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 
 import javax.swing.JButton;
@@ -33,6 +37,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 	private HashMap<String, Byte> addr = new HashMap<String, Byte>();
 	private HashMap<String, GradientList.Gradient> colors = new HashMap<String, GradientList.Gradient>();
 	private ReliableSocket socket;
+	private DateFormat df = new SimpleDateFormat("dd:MM:yy:HH:mm:ss");
 	
 	public GuiHandler() {
 		// JFrame
@@ -114,7 +119,11 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 				}
 				//UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
 				Message newMessage;
-				newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
+				long timestamp = System.currentTimeMillis();
+				Calendar cal = Calendar.getInstance();
+				cal.setTimeInMillis(timestamp);
+				String date = df.format(cal.getTime());
+				newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1], date);
 				frame.pack();
 				mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
 				frame.pack();
@@ -139,8 +148,12 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 							// TODO Auto-generated catch block
 							e1.printStackTrace();
 						}
+						long timestamp = System.currentTimeMillis();
+						Calendar cal = Calendar.getInstance();
+						cal.setTimeInMillis(timestamp);
+						String date = df.format(cal.getTime());
 						//UDPsocket.sendChatMessage(addr.get(messageParts[1]), 0, message);
-						Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1]);
+						Message newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, messageParts[1], date);
 						frame.pack();
 						mainScreen.addSize(newMessage.getBounds().y, messageParts[1]);
 						frame.pack();
@@ -152,16 +165,9 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 			}
 		}
 	}
-	
-//	@Override
-//	public void onReceive(Packet packet) {
-//		// TODO Auto-generated method stub
-//		System.out.println("JEEJ EEN PAKKET");
-//	}
 
 	@Override
 	public void newConnection(Connection connection) {
-		// TODO Auto-generated method stub
 		System.out.println("JEEJ EEN NIEUWE CONNECTIE");
 		mainScreen.addChat(connection.name, this);
 		users.put(connection.address, connection.name);
@@ -190,20 +196,23 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 				DataInputStream dataStream = new DataInputStream(new ByteArrayInputStream(packet.getData()));
 				byte addr = packet.getSourceAddress();
 				long timestamp = dataStream.readLong();
+				
+				Calendar cal = Calendar.getInstance();
+				cal.setTimeInMillis(timestamp);
+				String date = df.format(cal.getTime());
+				
 				String message = dataStream.readUTF();
 				String username = users.get(addr);
 				GradientList.Gradient color = colors.get(username);
-				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true, username);
+				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true, username, date);
 				frame.pack();
 				mainScreen.addSize(newMessage.getBounds().y, username);
 				frame.pack();
-				mainScreen.scrollDown(username);
-				frame.pack();
-				mainScreen.scrollDown(username);
 				frame.revalidate();
 				frame.repaint();
+				mainScreen.scrollDown(username);
+				frame.pack();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			

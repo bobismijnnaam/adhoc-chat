@@ -33,12 +33,13 @@ public class MainScreen {
 	private boolean init = false;
 
 	public MainScreen(String inputUsername) {
-		mainScreen = new JPanel(new MigLayout());
+		mainScreen = new JPanel(new MigLayout("insets 0"));
+		mainScreen.setBackground(Color.DARK_GRAY);
 		// create a chat
 		fullchat = createFullChat("", null);
 		mainScreen.add(fullchat, "split 2, w 540px, h 600px");
 		username = inputUsername;
-		userlist = new JPanel(new MigLayout());
+		userlist = new JPanel(new MigLayout("insets 0"));
 		userlist.setBackground(Color.DARK_GRAY);
 		Message user = new Message("<html><font color='white'>Online Users</font></html>", Color.LIGHT_GRAY,
 				Color.DARK_GRAY);
@@ -78,7 +79,7 @@ public class MainScreen {
 				+ "</u></font></html>", Color.LIGHT_GRAY, Color.DARK_GRAY);
 		scrollpane = scrollPanes.get(name);
 		scrollpane.getVerticalScrollBar().setUnitIncrement(16);
-		fullchat.add(username, "span, w 530px, h 30px");
+		fullchat.add(username, "span, w 530px, h 50px");
 		fullchat.add(scrollpane, "span, w 530px, h 510px");
 		fullchat.add(newTextField, "span, w 530px, h 50px");
 		fullchat.revalidate();
@@ -132,7 +133,8 @@ public class MainScreen {
 	 *          in the map.
 	 */
 	private JPanel createFullChat(String name, GuiHandler handler) {
-		JPanel fullChat = new JPanel(new MigLayout());
+		JPanel fullChat = new JPanel(new MigLayout("insets 0"));
+		fullChat.setBackground(Color.LIGHT_GRAY);
 		JLabel username = new JLabel("You're talking with " + name);
 		// create chatscreen
 		chatScreen = createChatScreen();
@@ -140,7 +142,7 @@ public class MainScreen {
 		scrollpane = new JScrollPane(chatScreen);
 		scrollpane.getVerticalScrollBar().setUnitIncrement(16);
 		JPanel sendButton = createSendButton(handler, name);
-		fullChat.add(username, "span, w 530px, h 20px");
+		fullChat.add(username, "span, w 530px, h 40px");
 		fullChat.add(scrollpane, "span, w 530px, h 510px");
 		fullChat.add(sendButton, "span, w 530px, h 50px");
 		chatScreens.put(name, chatScreen);

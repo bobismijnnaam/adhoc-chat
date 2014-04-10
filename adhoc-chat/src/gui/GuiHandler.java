@@ -16,10 +16,11 @@ import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
 import adhoc.Packet;
+import adhoc.ReliableSocket;
 import adhoc.UDPSocketListener;
 import adhoc.ReliableUDPSocket;
 
-public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListener {
+public class GuiHandler implements java.awt.event.ActionListener, AdhocListener{
 
 	// the loginGUI
 	private Login loginGUI;
@@ -27,10 +28,9 @@ public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListe
 	private JPanel panel, mainScreenPanel;
 	private MainScreen mainScreen;
 	private boolean main = false;
-	private AdhocSocket socket;
-	private ReliableUDPSocket UDPsocket;
 	private HashMap<Byte, String> users = new HashMap<Byte, String>();
 	private HashMap<String, Byte> addr = new HashMap<String, Byte>();
+	private ReliableSocket socket;
 	
 	public GuiHandler() {
 		// JFrame
@@ -65,8 +65,13 @@ public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListe
 //				e.printStackTrace();
 //			}
 //			socket.addListener(this);
-			UDPsocket = new ReliableUDPSocket(loginGUI.getUsername());
-			UDPsocket.registerListener(this);
+			try {
+				socket = new ReliableSocket(username);
+				socket.addListener(this);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);
@@ -162,17 +167,21 @@ public class GuiHandler implements java.awt.event.ActionListener, UDPSocketListe
 		
 	}
 
+//	@Override
+//	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
+//			String message) {
+//		//System.out.println(timestampMillis);
+//		String username = users.get(sourceAddress);
+//		System.out.println("Received message from" + username + message);
+//		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
+//		frame.pack();
+//		mainScreen.addSize(newMessage.getBounds().y, username);
+//		frame.pack();
+//		mainScreen.scrollDown(username);
+//		frame.pack();
+//	}
+
 	@Override
-	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
-			String message) {
-		//System.out.println(timestampMillis);
-		String username = users.get(sourceAddress);
-		System.out.println("Received message from" + username + message);
-		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
-		frame.pack();
-		mainScreen.addSize(newMessage.getBounds().y, username);
-		frame.pack();
-		mainScreen.scrollDown(username);
-		frame.pack();
+	public void onReceive(Packet packet) {
 	}
 }

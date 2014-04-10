@@ -15,30 +15,32 @@ import java.io.IOException;
 
 import adhoc.AdhocSocket.AdhocListener;
 
-public class SmallFileTransferSocket implements AdhocListener {
+public class FileTransferSocket implements AdhocListener {
 
 	private static final String RECEIVED_PREFIX = "received_";
+	private static final int MAX_DATA_SIZE = 256; // bytes
 	private ReliableSocket socket;
 
 	public static void main(String[] args) {
 		try {
-			SmallFileTransferSocket sock = new SmallFileTransferSocket(new ReliableSocket("willem1"));
+			FileTransferSocket sock = new FileTransferSocket(new ReliableSocket("willem", new byte[] { 0, 0, 0, 0 }));
 
-//			sock.sendFile("cheatcodes.txt");
-//			sock.sendFile("toobig.txt");
+			// sock.sendFile("cheatcodes.txt", (byte) 1);
+			// sock.sendFile("toobig.txt", (byte) 1);
+			sock.sendFile("space.jpg", (byte) 1);
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public SmallFileTransferSocket(ReliableSocket socket) {
+	public FileTransferSocket(ReliableSocket socket) {
 		this.socket = socket;
 		socket.addListener(this);
 	}
 
 	// filename in root (relative)
-	public void sendFile(String filename) {
+	public void sendFile(String filename, byte destination) {
 		BufferedInputStream bufStream = null;
 		try {
 			File file = new File(filename);
@@ -46,16 +48,24 @@ public class SmallFileTransferSocket implements AdhocListener {
 			fis = new FileInputStream(file);
 			bufStream = new BufferedInputStream(fis);
 
-			byte[] toSend = new byte[bufStream.available()];
-			bufStream.read(toSend);
+			int orderNr = 0;
+			byte[] toSend = new byte[MAX_DATA_SIZE];
+			while (bufStream.available() > 0) {
+				bufStream.read(toSend);
 
-			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-			DataOutputStream dataStream = new DataOutputStream(byteStream);
-			dataStream.writeUTF(file.getName());
-			dataStream.writeUTF(new String(toSend, "UTF-8"));
+				ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+				DataOutputStream dataStream = new DataOutputStream(byteStream);
+				dataStream.writeUTF(file.getName());
+				dataStream.writeInt(orderNr++);
+				dataStream.writeUTF(new String(toSend, "UTF-8"));
 
-			socket.send((byte) 1, Packet.TYPE_FILE, byteStream.toByteArray());
-
+				socket.send(destination, Packet.TYPE_FILE, byteStream.toByteArray());
+				try {
+					Thread.sleep(200);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 			bufStream.close();
 		} catch (FileNotFoundException e) {
 			System.out.println("File " + filename + " not found in project root");
@@ -72,21 +82,26 @@ public class SmallFileTransferSocket implements AdhocListener {
 			DataInputStream dataStream = new DataInputStream(byteStream);
 
 			String filename = dataStream.readUTF();
+			int orderNr = dataStream.readInt();
 			String filecontents = dataStream.readUTF();
 
 			File file = new File(RECEIVED_PREFIX + filename);
-			FileOutputStream fis;
-			fis = new FileOutputStream(file);
-			BufferedOutputStream bufStream = new BufferedOutputStream(fis);
+			FileOutputStream fos;
+
+			if (orderNr == 0) {
+				fos = new FileOutputStream(file, false);
+			} else {
+				fos = new FileOutputStream(file, true);
+			}
+			BufferedOutputStream bufStream = new BufferedOutputStream(fos);
 
 			bufStream.write(filecontents.getBytes("UTF-8"));
 			bufStream.flush();
 
-		}catch(EOFException e){
+		} catch (EOFException e) {
 			System.out.println("File too large :(");
 			e.printStackTrace();
-		}
-			catch (IOException e) {
+		} catch (IOException e) {
 			System.out.println("Couldnt write file ");
 			e.printStackTrace();
 		}

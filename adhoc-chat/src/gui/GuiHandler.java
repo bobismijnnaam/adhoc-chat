@@ -164,9 +164,10 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener,
 	@Override
 	public void onReceiveMessage(byte sourceAddress, long timestampMillis,
 			String message) {
+		System.out.println(timestampMillis);
 		String username = users.get(sourceAddress);
 		System.out.println("Received message from" + username + message);
-		Message newMessage = mainScreen.addMessage(message, username, "#f22d2d", "#d10c0c", true, username);
+		Message newMessage = mainScreen.addMessage("" + timestampMillis, username, "#f22d2d", "#d10c0c", true, username);
 		frame.pack();
 		mainScreen.addSize(newMessage.getBounds().y, username);
 		frame.pack();

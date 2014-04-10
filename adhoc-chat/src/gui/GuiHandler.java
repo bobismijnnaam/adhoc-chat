@@ -257,13 +257,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 
-		byte dest;
-		if (username.equals("GroupChat")) {
-			dest = AdhocSocket.MULTICAST_ADDRESS;
-
-		} else {
-			dest = addr.get(username);
-		}
+		byte dest = addr.get(username);
 
 		dataStream.writeLong(System.currentTimeMillis());
 		dataStream.writeUTF(inputMessage);

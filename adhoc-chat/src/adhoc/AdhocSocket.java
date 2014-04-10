@@ -214,12 +214,8 @@ public class AdhocSocket implements Runnable {
 
 		Packet packet = new Packet(source, dest, hopCount, type, id, data);
 
-		System.out.print("received " + Integer.toHexString(id) + " from " + source);
-
-		if (isDuplicate(id))
-			System.out.println(" (dupe)");
-		else
-			System.out.println(" (new)");
+		if (!isDuplicate(id))
+			System.out.println("received " + Integer.toHexString(id) + " from " + source);
 
 		if (dest != address) {
 			if (source != address) {
@@ -306,7 +302,8 @@ public class AdhocSocket implements Runnable {
 		dataStream.writeInt(id);
 		dataStream.write(data);
 
-		System.out.println("sent " + Integer.toHexString(id));
+		if (packetType != BROADCAST_TYPE)
+			System.out.println("sent " + Integer.toHexString(id));
 
 		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
 

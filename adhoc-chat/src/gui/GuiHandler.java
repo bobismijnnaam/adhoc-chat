@@ -16,10 +16,10 @@ import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
 import adhoc.Packet;
-import adhoc.PrivateMessageListener;
+import adhoc.UDPSocketListener;
 import adhoc.ReliableUDPSocket;
 
-public class GuiHandler implements java.awt.event.ActionListener, AdhocListener, PrivateMessageListener {
+public class GuiHandler implements java.awt.event.ActionListener, AdhocListener, UDPSocketListener {
 
 	// the loginGUI
 	private Login loginGUI;

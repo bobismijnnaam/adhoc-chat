@@ -171,19 +171,29 @@ public class MainScreen {
 	 */
 	public Message addMessage(String message, String username, String color1, String color2, boolean incoming,
 			String group, String timeStamp) {
-		Message newMessage = new Message("<html><font color=#ffffdd><font size=4><b>" + username + "</b></font><br />"
-				+ message + "<br /><font size=2>" + timeStamp + "</font></font></html>", Color.decode(color1),
-				Color.decode(color2));
+		Message newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b>" + username
+				+ "</b></font><br />" + formatMessage(message) + "<br /><font size=2>" + timeStamp
+				+ "</font></font></body></html>", Color.decode(color1), Color.decode(color2));
 		JPanel chatScreen;
 		chatScreen = chatScreens.get(group);
 		if (incoming) {
-			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px");
+			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, growx, wmax 300");
 		} else {
-			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px");
+			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px, growx, wmax 300");
 		}
 		mainScreen.revalidate();
 		mainScreen.repaint();
 		return newMessage;
+	}
+
+	/**
+	 * Formats the string of the message
+	 * 
+	 * @return the formatted String
+	 */
+	private String formatMessage(String inputMessage) {
+		String formattedMessage = inputMessage;
+		return formattedMessage;
 	}
 
 	public void addSize(int size, String name) {

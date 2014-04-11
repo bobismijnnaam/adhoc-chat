@@ -179,9 +179,11 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 
 		// picks a color from the gradientcolor list and associates it with the
 		// username
-		GradientList.Gradient color = gradients.getGradient(index);
-		colors.put(connection.name, color);
-		System.out.println(colors.size());
+		if (!colors.containsKey(connection.name)) {
+			GradientList.Gradient color = gradients.getGradient(index);
+			colors.put(connection.name, color);
+			System.out.println(colors.size());
+		}
 	}
 
 	/**
@@ -208,10 +210,12 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 				System.out.println("Received a message");
 				byte[] data = null;
 				byte addr = packet.getDestAddress();
+				boolean isGroupChat = false;
 
 				// if it's a broadcast
 				if (addr == AdhocSocket.MULTICAST_ADDRESS) {
 					data = packet.getData();
+					isGroupChat = true;
 				} else {
 					data = Crypto.INSTANCE.decrypt(packet.getData());
 				}
@@ -226,8 +230,13 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 				String message = dataStream.readUTF();
 				String username = users.get(packet.getSourceAddress());
 				GradientList.Gradient color = colors.get(username);
-				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true,
-						username, date);
+				String dest = username;
+
+				if (isGroupChat)
+					dest = "GroupChat";
+
+				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true, dest,
+						date);
 				frame.pack();
 				mainScreen.addSize(newMessage.getBounds().y, username);
 				frame.pack();
@@ -257,13 +266,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 
-		byte dest;
-		if (username.equals("GroupChat")) {
-			dest = AdhocSocket.MULTICAST_ADDRESS;
-
-		} else {
-			dest = addr.get(username);
-		}
+		byte dest = addr.get(username);
 
 		dataStream.writeLong(System.currentTimeMillis());
 		dataStream.writeUTF(inputMessage);

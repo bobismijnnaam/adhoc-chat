@@ -2,6 +2,8 @@ package gui;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -66,6 +68,20 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		frame.add(panel);
 		frame.setVisible(true);
 		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+		// set focus
+		// loginGUI.setFocus();
+
+		// on closing sent leave message
+		frame.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				System.out.println("Closed");
+				if (main)
+					socket.close();
+				super.windowClosed(e);
+			}
+		});
 	}
 
 	/**
@@ -163,8 +179,8 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			String date = df.format(cal.getTime());
 			newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, incoming, group, date);
 			frame.pack();
-			mainScreen.addSize(newMessage.getBounds().y, group);
-			System.out.println(newMessage.getBounds().y);
+			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
+			// System.out.println(newMessage.getBounds());
 			frame.pack();
 			mainScreen.scrollDown(group);
 		}
@@ -240,6 +256,8 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 					if (isGroupChat)
 						dest = "GroupChat";
 					System.out.println(message + username + dest);
+
+					mainScreen.addNotification(dest);
 
 					processMessage(dest, true, username, color, timestamp, message);
 					mainScreen.scrollDown(dest);

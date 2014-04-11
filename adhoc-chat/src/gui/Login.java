@@ -58,6 +58,10 @@ public class Login {
 		username.removeActionListener(handler);
 	}
 
+	public void setFocus() {
+		username.requestFocusInWindow();
+	}
+
 	/*
 	 * adds action listeners to the elements that need them.
 	 */

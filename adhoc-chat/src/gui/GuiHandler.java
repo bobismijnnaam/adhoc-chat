@@ -199,7 +199,6 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	public void removedConnection(Connection connection) {
 		System.out.println("EEN CONNECTIE GING WEG");
 		mainScreen.removeUser(connection.name);
-		// because bob wants to reread messages from his lovers
 		// mainScreen.changeChat("GroupChat");
 	}
 

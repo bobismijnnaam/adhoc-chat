@@ -214,6 +214,14 @@ public class AdhocSocket implements Runnable {
 		if (!isDuplicate(id))
 			System.out.println("received " + Integer.toHexString(id) + " from " + source);
 
+		if (dest == address || dest == MULTICAST_ADDRESS) {
+			if (!isDuplicate(id)) {
+				for (AdhocListener listener : listeners) {
+					listener.onReceive(packet);
+				}
+			}
+		}
+
 		if (dest != address) {
 			if (source != address) {
 				if (hopCount > 0 && !isDuplicate(id)) {
@@ -232,14 +240,6 @@ public class AdhocSocket implements Runnable {
 							listener.removedConnection(connection);
 						}
 					}
-				}
-			}
-		}
-
-		if (dest == address || dest == MULTICAST_ADDRESS) {
-			if (!isDuplicate(id)) {
-				for (AdhocListener listener : listeners) {
-					listener.onReceive(packet);
 				}
 			}
 		}

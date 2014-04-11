@@ -62,7 +62,7 @@ public class Login {
 		username.requestFocusInWindow();
 	}
 
-	/*
+	/**
 	 * adds action listeners to the elements that need them.
 	 */
 	private void addListeners() {
@@ -95,7 +95,7 @@ public class Login {
 		});
 	}
 
-	/*
+	/**
 	 * Initializes all the elements, gives them the right properties.
 	 */
 	private void initialize() {
@@ -129,21 +129,21 @@ public class Login {
 		title.setHorizontalAlignment(SwingConstants.CENTER);
 	}
 
-	/*
+	/**
 	 * Returns the current picked username of the user
 	 */
 	public String getUsername() {
 		return username.getText();
 	}
 
-	/*
+	/**
 	 * Sets the color of the username to red
 	 */
 	public void setUsernameBad() {
 		username.setForeground(Color.RED);
 	}
 
-	/*
+	/**
 	 * Returns the created panel
 	 */
 	public JPanel createPanel() {

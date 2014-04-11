@@ -77,6 +77,7 @@ public class MainScreen {
 		// JLabel username = new JLabel("You're talking with " + name);
 		Message username = new Message("<html><font color='white'>You're talking with <u>" + name
 				+ "</u></font></html>", Color.LIGHT_GRAY, Color.DARK_GRAY);
+
 		scrollpane = scrollPanes.get(name);
 		scrollpane.getVerticalScrollBar().setUnitIncrement(16);
 		fullchat.add(username, "span, w 530px, h 50px");

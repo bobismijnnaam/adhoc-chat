@@ -57,6 +57,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 		frame.setTitle("Adhoc ChatApp");
 		frame.setLocationRelativeTo(null);
 
+		// Add multicast address
 		users.put(AdhocSocket.MULTICAST_ADDRESS, "GroupChat");
 		addr.put("GroupChat", AdhocSocket.MULTICAST_ADDRESS);
 
@@ -70,9 +71,6 @@ public class GuiHandler implements ActionListener, AdhocListener {
 		frame.setVisible(true);
 		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-		// set focus
-		// loginGUI.setFocus();
-
 		// on closing sent leave message
 		frame.addWindowListener(new WindowAdapter() {
 			@Override
@@ -83,6 +81,44 @@ public class GuiHandler implements ActionListener, AdhocListener {
 				super.windowClosed(e);
 			}
 		});
+	}
+
+	/**
+	 * Triggered when an action in the UI is performed
+	 */
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// create color and timestamp
+		GradientList list = new GradientList();
+		GradientList.Gradient color = list.sendColor();
+		long timestamp = System.currentTimeMillis();
+
+		// if in main screen and enter is pressed in an arbritrary text field
+		if (main && ((Component) e.getSource()).getName().contains("enter")) {
+			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
+			String group = messageParts[1];
+			// process the message
+			processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
+		} else {
+			// check if it's an attempt to login
+			if (((Component) e.getSource()).getName().equals("loginkey")) {
+				// try login
+				tryLogin(loginGUI.getUsername());
+			} else {
+				JButton source = (JButton) e.getSource();
+				// if the user wants to login
+				if (source.getName().equals("login")) {
+					tryLogin(loginGUI.getUsername());
+				} else if (source.getName().contains("send")) {
+					String[] messageParts = ((Component) e.getSource()).getName().split("send");
+					String group = messageParts[1];
+					// process the message
+					processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
+				} else {
+					mainScreen.changeChat(source.getName());
+				}
+			}
+		}
 	}
 
 	/**
@@ -105,10 +141,13 @@ public class GuiHandler implements ActionListener, AdhocListener {
 			mainScreenPanel = mainScreen.returnPanel();
 			mainScreen.addChat("GroupChat", this);
 			mainScreen.changeChat("GroupChat");
+
+			// switch to mainSreen, set window to center
 			frame.add(mainScreenPanel);
 			frame.pack();
 			frame.setLocationRelativeTo(null);
 
+			// attempt to create a reliablesocket
 			try {
 				socket = new ReliableSocket(username, Crypto.INSTANCE.getMyKey());
 				socket.addListener(this);
@@ -122,46 +161,12 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	}
 
 	/**
-	 * Triggered when an action in the UI is performed
-	 */
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		// create color and timestamp
-		GradientList list = new GradientList();
-		GradientList.Gradient color = list.sendColor();
-		long timestamp = System.currentTimeMillis();
-		if (main && ((Component) e.getSource()).getName().contains("enter")) {
-			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
-			String group = messageParts[1];
-			// process the message
-			processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
-		} else {
-			if (((Component) e.getSource()).getName().equals("loginkey")) {
-				// try login
-				tryLogin(loginGUI.getUsername());
-			} else {
-				JButton source = (JButton) e.getSource();
-				// if the user wants to login
-				if (source.getName().equals("login")) {
-					tryLogin(loginGUI.getUsername());
-				} else if (source.getName().contains("send")) {
-					String[] messageParts = ((Component) e.getSource()).getName().split("send");
-					String group = messageParts[1];
-					// process the message
-					processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
-				} else {
-					mainScreen.changeChat(source.getName());
-				}
-			}
-		}
-	}
-
-	/**
 	 * Processes the message, gives the correct parameters to sendmessage
 	 */
 	private void processMessage(String group, boolean incoming, String username, GradientList.Gradient color,
 			long timestamp, String message) {
-		// retrieve message from textfield in associated group
+		// retrieve message from textfield in associated group if it's an
+		// outgoing message
 		if (!incoming)
 			message = mainScreen.getMessage(group);
 		if (!message.equals("") && message.trim().length() > 0) {
@@ -174,11 +179,12 @@ public class GuiHandler implements ActionListener, AdhocListener {
 				}
 			}
 
-			Message newMessage;
+			// create a timestamp and a new message
 			Calendar cal = Calendar.getInstance();
 			cal.setTimeInMillis(timestamp);
 			String date = df.format(cal.getTime());
-			newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, incoming, group, date);
+			Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, incoming, group,
+					date);
 			frame.pack();
 			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
 			// System.out.println(newMessage.getBounds());
@@ -193,12 +199,14 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	 */
 	@Override
 	public void newConnection(Connection connection) {
+		// adds a chat for the new connection if needed and add the connection
+		// and username to the hashmaps.
 		mainScreen.addChat(connection.name, this);
 		users.put(connection.address, connection.name);
 		addr.put(connection.name, connection.address);
 		GradientList gradients = new GradientList();
 		int index = colors.size();
-		index = index % 6;
+		index = index % gradients.getSize();
 
 		// picks a color from the gradientcolor list and associates it with the
 		// username
@@ -226,7 +234,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	 */
 	@Override
 	public void onReceive(Packet packet) {
-		System.out.println("Receive not ack packet");
+		// if it's an chat packet
 		if (packet.getType() == Packet.CHAT) {
 			try {
 				System.out.println("Received a message");
@@ -234,7 +242,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 				byte addr = packet.getDestAddress();
 				boolean isGroupChat = false;
 
-				// if it's a broadcast
+				// if it's a broadcast (groupchat)
 				if (addr == AdhocSocket.MULTICAST_ADDRESS) {
 					data = packet.getData();
 					isGroupChat = true;

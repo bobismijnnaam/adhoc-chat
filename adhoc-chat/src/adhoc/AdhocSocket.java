@@ -212,32 +212,33 @@ public class AdhocSocket implements Runnable {
 		Packet packet = new Packet(source, dest, hopCount, type, id, data);
 
 		if (!isDuplicate(id))
-			System.out.println("received " + Integer.toHexString(id) + " from " + source);
+			// System.out.println("received " + Integer.toHexString(id) +
+			// " from " + source);
 
-		if (dest != address) {
-			if (source != address) {
-				if (hopCount > 0 && !isDuplicate(id)) {
-					hopCount--;
-					sendData(source, dest, hopCount, type, id, data);
+			if (dest != address) {
+				if (source != address) {
+					if (hopCount > 0 && !isDuplicate(id)) {
+						hopCount--;
+						sendData(source, dest, hopCount, type, id, data);
 
-					if (type == BROADCAST_TYPE) {
-						handleBroadcast(packet);
-					}
+						if (type == BROADCAST_TYPE) {
+							handleBroadcast(packet);
+						}
 
-					if (type == LEAVE_TYPE) {
-						Connection connection = getConnection(source);
-						connections.remove(connection);
+						if (type == LEAVE_TYPE) {
+							Connection connection = getConnection(source);
+							connections.remove(connection);
 
-						for (AdhocListener listener : listeners) {
-							listener.removedConnection(connection);
+							for (AdhocListener listener : listeners) {
+								listener.removedConnection(connection);
+							}
 						}
 					}
 				}
 			}
-		}
 
 		if (dest == address || dest == MULTICAST_ADDRESS) {
-			if (!isDuplicate(id)) {
+			if (!isDuplicate(id)) { // Satan's schild
 				for (AdhocListener listener : listeners) {
 					listener.onReceive(packet);
 				}
@@ -301,8 +302,8 @@ public class AdhocSocket implements Runnable {
 		dataStream.writeInt(id);
 		dataStream.write(data);
 
-		if (packetType != BROADCAST_TYPE)
-			System.out.println("sent " + Integer.toHexString(id));
+		// if (packetType != BROADCAST_TYPE)
+		// System.out.println("sent " + Integer.toHexString(id));
 
 		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
 

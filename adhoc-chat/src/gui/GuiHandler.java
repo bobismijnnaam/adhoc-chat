@@ -36,7 +36,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	// if in mainscreen
 	private boolean main = false;
 
-	// userlist, adreslists, colorlist
+	// userlist, addresslists, colorlist
 	private HashMap<Byte, String> users = new HashMap<Byte, String>();
 	private HashMap<String, Byte> addr = new HashMap<String, Byte>();
 	private HashMap<String, GradientList.Gradient> colors = new HashMap<String, GradientList.Gradient>();

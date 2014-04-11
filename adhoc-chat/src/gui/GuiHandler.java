@@ -209,11 +209,13 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			try {
 				System.out.println("Received a message");
 				byte[] data = null;
-				byte addr = packet.getSourceAddress();
+				byte addr = packet.getDestAddress();
+				boolean isGroupChat = false;
 
 				// if it's a broadcast
 				if (addr == AdhocSocket.MULTICAST_ADDRESS) {
 					data = packet.getData();
+					isGroupChat = true;
 				} else {
 					data = Crypto.INSTANCE.decrypt(packet.getData());
 				}
@@ -226,10 +228,15 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 				String date = df.format(cal.getTime());
 
 				String message = dataStream.readUTF();
-				String username = users.get(addr);
+				String username = users.get(packet.getSourceAddress());
 				GradientList.Gradient color = colors.get(username);
-				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true,
-						username, date);
+				String dest = username;
+
+				if (isGroupChat)
+					dest = "GroupChat";
+
+				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true, dest,
+						date);
 				frame.pack();
 				mainScreen.addSize(newMessage.getBounds().y, username);
 				frame.pack();

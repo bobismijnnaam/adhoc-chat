@@ -38,15 +38,6 @@ public class AdhocSocket implements Runnable {
 	private final Random random = new Random();
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		// try {
-		// Thread.sleep(5000);
-		// } catch (InterruptedException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		//
-		// adhocSocket.close();
-
 		AdhocSocket adhocSocket = new AdhocSocket(args[0], new byte[0]);
 
 		AdhocListener ahListener = new AdhocListener() {
@@ -233,8 +224,10 @@ public class AdhocSocket implements Runnable {
 						Connection connection = getConnection(source);
 						connections.remove(connection);
 
-						for (AdhocListener listener : listeners) {
-							listener.removedConnection(connection);
+						if (connection != null) {
+							for (AdhocListener listener : listeners) {
+								listener.removedConnection(connection);
+							}
 						}
 					}
 				}
@@ -288,6 +281,9 @@ public class AdhocSocket implements Runnable {
 
 	private void sendData(byte source, byte destAddress, byte hopCount, byte packetType, int id, byte[] data)
 			throws IOException {
+		forwardedPackets[forwardedPacketsIndex] = id;
+		forwardedPacketsIndex = (forwardedPacketsIndex + 1) % forwardedPackets.length;
+
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 
@@ -302,9 +298,6 @@ public class AdhocSocket implements Runnable {
 			System.out.println("sent " + Integer.toHexString(id));
 
 		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
-
-		forwardedPackets[forwardedPacketsIndex] = id;
-		forwardedPacketsIndex = (forwardedPacketsIndex + 1) % forwardedPackets.length;
 	}
 
 	public ArrayList<Connection> getConnections() {

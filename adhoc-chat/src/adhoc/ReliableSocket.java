@@ -81,15 +81,17 @@ public class ReliableSocket implements AdhocListener, Runnable {
 	@Override
 	public void run() {
 		while (socket.isRunning()) {
-			for (Packet p : unackedPackets) {
-				if (System.currentTimeMillis() > resendTimes.get(p)) {
-					try {
-						socket.sendData(p);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+			synchronized (unackedPackets) {
+				for (Packet p : unackedPackets) {
+					if (System.currentTimeMillis() > resendTimes.get(p)) {
+						try {
+							socket.sendData(p);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 
-					resendTimes.put(p, System.currentTimeMillis() + RESEND_TIME);
+						resendTimes.put(p, System.currentTimeMillis() + RESEND_TIME);
+					}
 				}
 			}
 
@@ -133,17 +135,19 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 	@Override
 	public void removedConnection(Connection connection) {
-		ArrayList<Packet> removals = new ArrayList<Packet>();
+		synchronized (unackedPackets) {
+			ArrayList<Packet> removals = new ArrayList<Packet>();
 
-		for (Packet p : unackedPackets) {
-			if (p.getDestAddress() == connection.address) {
-				removals.add(p);
+			for (Packet p : unackedPackets) {
+				if (p.getDestAddress() == connection.address) {
+					removals.add(p);
 
-				resendTimes.remove(p);
+					resendTimes.remove(p);
+				}
 			}
-		}
 
-		unackedPackets.removeAll(removals);
+			unackedPackets.removeAll(removals);
+		}
 
 		for (AdhocListener listener : listeners) {
 			listener.removedConnection(connection);

@@ -2,6 +2,7 @@ package gui;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -25,7 +26,7 @@ import adhoc.Packet;
 import adhoc.ReliableSocket;
 import crypto.Crypto;
 
-public class GuiHandler implements java.awt.event.ActionListener, AdhocListener {
+public class GuiHandler implements ActionListener, AdhocListener {
 	// the loginGUI
 	private Login loginGUI;
 	private JFrame frame;
@@ -35,7 +36,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	// if in mainscreen
 	private boolean main = false;
 
-	// userlist, adreslists, colorlist
+	// userlist, addresslists, colorlist
 	private HashMap<Byte, String> users = new HashMap<Byte, String>();
 	private HashMap<String, Byte> addr = new HashMap<String, Byte>();
 	private HashMap<String, GradientList.Gradient> colors = new HashMap<String, GradientList.Gradient>();

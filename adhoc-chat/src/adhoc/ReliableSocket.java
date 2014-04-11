@@ -54,8 +54,10 @@ public class ReliableSocket implements AdhocListener, Runnable {
 				}
 			}
 
-			for (AdhocListener listener : listeners) {
-				listener.onReceive(packet);
+			if (!socket.isDuplicate(packet.getId())) {
+				for (AdhocListener listener : listeners) {
+					listener.onReceive(packet);
+				}
 			}
 		} else {
 			ByteArrayInputStream byteStream = new ByteArrayInputStream(packet.getData());

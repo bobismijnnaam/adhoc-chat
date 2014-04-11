@@ -26,8 +26,6 @@ import adhoc.ReliableSocket;
 import crypto.Crypto;
 
 public class GuiHandler implements java.awt.event.ActionListener, AdhocListener {
-	private static final byte CHAT_TYPE = 1;
-
 	// the loginGUI
 	private Login loginGUI;
 	private JFrame frame;
@@ -213,7 +211,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	@Override
 	public void onReceive(Packet packet) {
 		System.out.println("Receive not ack packet");
-		if (packet.getType() == CHAT_TYPE) {
+		if (packet.getType() == Packet.CHAT) {
 			try {
 				System.out.println("Received a message");
 				byte[] data = null;
@@ -274,9 +272,9 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		dataStream.writeUTF(inputMessage);
 
 		if (username.equals("GroupChat")) {
-			socket.send(dest, CHAT_TYPE, byteStream.toByteArray());
+			socket.send(dest, Packet.CHAT, byteStream.toByteArray());
 		} else {
-			socket.send(dest, CHAT_TYPE, Crypto.INSTANCE.encrypt(dest, byteStream.toByteArray()));
+			socket.send(dest, Packet.CHAT, Crypto.INSTANCE.encrypt(dest, byteStream.toByteArray()));
 		}
 	}
 

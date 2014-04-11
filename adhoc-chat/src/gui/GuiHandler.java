@@ -238,11 +238,9 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true, dest,
 						date);
 				frame.pack();
-				mainScreen.addSize(newMessage.getBounds().y, username);
+				mainScreen.addSize(newMessage.getBounds().y, dest);
 				frame.pack();
-				frame.revalidate();
-				frame.repaint();
-				mainScreen.scrollDown(username);
+				mainScreen.scrollDown(dest);
 				frame.pack();
 
 			} catch (IOException e) {

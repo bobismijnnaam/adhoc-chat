@@ -23,24 +23,36 @@ public class MainScreen {
 	// the mainscreen panel
 	private JPanel mainScreen, chatScreen, userlist, fullchat;
 	private JScrollPane scrollpane;
+
+	// hashmaps for storing the chats, textfields and userlists
 	private HashMap<String, JPanel> chatScreens = new HashMap<String, JPanel>();
 	private HashMap<String, JPanel> textFields = new HashMap<String, JPanel>();
 	private HashMap<String, JTextField> realTextFields = new HashMap<String, JTextField>();
 	private HashMap<String, JButton> users = new HashMap<String, JButton>();
 	private HashMap<String, JScrollPane> scrollPanes = new HashMap<String, JScrollPane>();
+
+	// username for identification
 	private String username;
+
+	// previous open chatbutton
 	private JButton oldButton;
+
+	// if chat is fully initialized (if chat has changed itself to group chat)
 	private boolean init = false;
 
 	public MainScreen(String inputUsername) {
+		// remove insets
 		mainScreen = new JPanel(new MigLayout("insets 0"));
 		mainScreen.setBackground(Color.DARK_GRAY);
+
 		// create a chat
 		fullchat = createFullChat("", null);
 		mainScreen.add(fullchat, "split 2, w 540px, h 600px");
 		username = inputUsername;
 		userlist = new JPanel(new MigLayout("insets 0"));
 		userlist.setBackground(Color.DARK_GRAY);
+
+		// List description
 		Message user = new Message("<html><font color='white'>Online Users</font></html>", Color.LIGHT_GRAY,
 				Color.DARK_GRAY);
 		userlist.add(user, "span, w 160px, h 30px");
@@ -48,7 +60,7 @@ public class MainScreen {
 	}
 
 	/**
-	 * returns username
+	 * @return username picked by the user
 	 */
 	public String getUsername() {
 		return username;
@@ -56,6 +68,9 @@ public class MainScreen {
 
 	/**
 	 * Change chat, it sets a different chat box
+	 * 
+	 * @param name
+	 *            name of the chat to change to
 	 */
 	public void changeChat(String name) {
 		// JPanel newScreen = chatScreens.get(name);
@@ -65,6 +80,7 @@ public class MainScreen {
 			fullchat.remove(components[i]);
 		}
 
+		// if not init initialize it
 		if (!init) {
 			init = true;
 			oldButton = users.get(name);
@@ -74,10 +90,12 @@ public class MainScreen {
 		}
 		users.get(name).setText("<html><font color='white'><u>" + name + "</u></font></html>");
 		oldButton = users.get(name);
+
 		// JLabel username = new JLabel("You're talking with " + name);
 		Message username = new Message("<html><font color='white'>You're talking with <u>" + name
 				+ "</u></font></html>", Color.LIGHT_GRAY, Color.DARK_GRAY);
 
+		// change content in the fullchat
 		scrollpane = scrollPanes.get(name);
 		scrollpane.getVerticalScrollBar().setUnitIncrement(16);
 		fullchat.add(username, "span, w 530px, h 50px");
@@ -90,6 +108,11 @@ public class MainScreen {
 
 	/**
 	 * Adds a chatwindow and ads the user to the list
+	 * 
+	 * @param name
+	 *            - name of the chat to add
+	 * @param handler
+	 *            - handler to give to the listeners
 	 */
 	public void addChat(String name, GuiHandler handler) {
 		if (users.containsKey(name) && !users.get(name).isShowing()) {
@@ -109,6 +132,9 @@ public class MainScreen {
 
 	/**
 	 * Removes the user out of the right window.
+	 * 
+	 * @param name
+	 *            the name of the user to remove from the user list
 	 */
 	public void removeUser(String name) {
 		if (users.containsKey(name) && users.get(name).isShowing()) {
@@ -121,6 +147,11 @@ public class MainScreen {
 
 	/**
 	 * Adds an user to the userlist
+	 * 
+	 * @param name
+	 *            - The name of the user to add
+	 * @param handler
+	 *            - the handler to give to the listeners
 	 */
 	private void addUser(String name, GuiHandler handler) {
 		Message user = new Message("<html><font color='white'>" + name + "</font></html>", Color.LIGHT_GRAY, Color.GRAY);
@@ -131,8 +162,8 @@ public class MainScreen {
 	}
 
 	/**
-	 * @Returns a chat screen with send button and puts username and chatpanel
-	 *          in the map.
+	 * @Return a chat screen with send button and puts username and chatpanel in
+	 *         the map.
 	 */
 	private JPanel createFullChat(String name, GuiHandler handler) {
 		JPanel fullChat = new JPanel(new MigLayout("insets 0"));
@@ -153,11 +184,29 @@ public class MainScreen {
 		return fullChat;
 	}
 
+	/**
+	 * Adds listeners to the handler
+	 * 
+	 * @param handler
+	 *            - handler to add the listeners to
+	 * @param send
+	 *            - the button associated with the handler
+	 * @param field
+	 *            - the textfield assosiated with the handler
+	 */
 	private void addController(GuiHandler handler, JButton send, JTextField field) {
 		send.addActionListener(handler);
 		field.addActionListener(handler);
 	} // addController()
 
+	/**
+	 * Get's the message from a textfield
+	 * 
+	 * @param name
+	 *            - the name of the group (chat) to get the text out of the
+	 *            textfield
+	 * @return a message (String)
+	 */
 	public String getMessage(String name) {
 		String message = getTextField(name).getText();
 		getTextField(name).setText("");

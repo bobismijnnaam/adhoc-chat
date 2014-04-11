@@ -31,9 +31,6 @@ public class GradientList {
 		return list.length;
 	}
 
-	/**
-	 * Contains two colors.
-	 */
 	public class Gradient {
 		public String color1;
 		public String color2;

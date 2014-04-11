@@ -124,6 +124,9 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	/**
 	 * Attempts to login, checks the username changes color to red if username
 	 * bad, else go to chat main screen.
+	 * 
+	 * @param username
+	 *            - Name associated with address.
 	 */
 	private void tryLogin(String username) {
 		// check username (longer than 3 characters only numbers and characters)
@@ -162,6 +165,15 @@ public class GuiHandler implements ActionListener, AdhocListener {
 
 	/**
 	 * Processes the message, gives the correct parameters to sendmessage
+	 * 
+	 * @param group
+	 *            - The group (chat) to send the message to
+	 * @param incoming
+	 *            - Wether it's an incoming message or not
+	 * @param username
+	 *            - The assosiated name with the address to display
+	 * @param color
+	 *            - The assosiated color with the username/adress
 	 */
 	private void processMessage(String group, boolean incoming, String username, GradientList.Gradient color,
 			long timestamp, String message) {
@@ -196,6 +208,9 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	/**
 	 * Triggered when a new connection is esthablished, adds a new chat and user
 	 * to list of neccesary
+	 * 
+	 * @param connection
+	 *            - The connection received from the ReliableSocket
 	 */
 	@Override
 	public void newConnection(Connection connection) {
@@ -219,6 +234,9 @@ public class GuiHandler implements ActionListener, AdhocListener {
 
 	/**
 	 * Triggered when a connection is removed, removes user and chat from UI
+	 * 
+	 * @param connection
+	 *            - The connection received from the ReliableSocket
 	 */
 	@Override
 	public void removedConnection(Connection connection) {
@@ -230,6 +248,8 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	/**
 	 * Triggered when a packet is received
 	 * 
+	 * @param packet
+	 *            - packet received from the ReliableSocket
 	 * @see adhoc.AdhocSocket.AdhocListener#onReceive(adhoc.Packet)
 	 */
 	@Override
@@ -284,7 +304,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	 * @param inputMessage
 	 *            - message to send
 	 * @param username
-	 *            - username to send to
+	 *            - username (group) to send to
 	 * @throws IOException
 	 *             if something goes wrong
 	 */

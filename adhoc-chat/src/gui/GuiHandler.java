@@ -2,6 +2,7 @@ package gui;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -25,7 +26,7 @@ import adhoc.Packet;
 import adhoc.ReliableSocket;
 import crypto.Crypto;
 
-public class GuiHandler implements java.awt.event.ActionListener, AdhocListener {
+public class GuiHandler implements ActionListener, AdhocListener {
 	private static final byte CHAT_TYPE = 1;
 
 	// the loginGUI

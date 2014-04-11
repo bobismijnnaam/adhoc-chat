@@ -64,7 +64,7 @@ public class MainScreen {
 		for (int i = 0; i < components.length; i++) {
 			fullchat.remove(components[i]);
 		}
-		System.out.println("Removed chat");
+
 		if (!init) {
 			init = true;
 			oldButton = users.get(name);
@@ -205,7 +205,7 @@ public class MainScreen {
 			chatScreen.setPreferredSize(chatScreen.getPreferredSize());
 			chatScreen.revalidate();
 			mainScreen.revalidate();
-			mainScreen.repaint();
+			// mainScreen.repaint();
 		}
 	}
 

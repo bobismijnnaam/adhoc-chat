@@ -12,8 +12,6 @@ import java.util.Random;
 import adhoc.AdhocSocket.AdhocListener;
 
 public class ReliableSocket implements AdhocListener, Runnable {
-	private static final byte ACK_TYPE = 2;
-
 	private static final long RESEND_TIME = 1000;
 
 	private AdhocSocket socket;
@@ -40,7 +38,7 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 	@Override
 	public void onReceive(Packet packet) {
-		if (packet.getType() != ACK_TYPE) {
+		if (packet.getType() != Packet.ACK) {
 			if (packet.getDestAddress() != AdhocSocket.MULTICAST_ADDRESS) {
 				try {
 					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -48,7 +46,7 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 					dataStream.writeInt(packet.getId());
 
-					socket.sendData(packet.getSourceAddress(), ACK_TYPE, byteStream.toByteArray());
+					socket.sendData(packet.getSourceAddress(), Packet.ACK, byteStream.toByteArray());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

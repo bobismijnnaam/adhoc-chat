@@ -19,9 +19,6 @@ public class AdhocSocket implements Runnable {
 	private static final int PORT = 4001;
 	protected static final long BROADCAST_TIME = 1000;
 
-	public static final byte BROADCAST_TYPE = 0;
-	private static final byte LEAVE_TYPE = 3;
-
 	public static final byte MULTICAST_ADDRESS = -1;
 
 	protected static final long TIMEOUT = 10000;
@@ -46,7 +43,7 @@ public class AdhocSocket implements Runnable {
 		AdhocListener ahListener = new AdhocListener() {
 			@Override
 			public void onReceive(Packet packet) {
-				if (packet.getType() == BROADCAST_TYPE) {
+				if (packet.getType() == Packet.BROADCAST) {
 					System.out.println("[UNIT TEST] Received broadcast");
 				} else {
 					System.out.println("[UNIT TEST] Received message: " + new String(packet.getData()));
@@ -117,7 +114,7 @@ public class AdhocSocket implements Runnable {
 						dataStream.writeUTF(name);
 						dataStream.write(key);
 
-						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
+						sendData(MULTICAST_ADDRESS, Packet.BROADCAST, byteStream.toByteArray());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -219,11 +216,11 @@ public class AdhocSocket implements Runnable {
 					hopCount--;
 					sendData(source, dest, hopCount, type, id, data);
 
-					if (type == BROADCAST_TYPE) {
+					if (type == Packet.BROADCAST) {
 						handleBroadcast(packet);
 					}
 
-					if (type == LEAVE_TYPE) {
+					if (type == Packet.LEAVE) {
 						Connection connection = getConnection(source);
 						connections.remove(connection);
 
@@ -297,7 +294,7 @@ public class AdhocSocket implements Runnable {
 		dataStream.writeInt(id);
 		dataStream.write(data);
 
-		if (packetType != BROADCAST_TYPE)
+		if (packetType != Packet.BROADCAST)
 			System.out.println("sent " + Integer.toHexString(id));
 
 		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
@@ -327,7 +324,7 @@ public class AdhocSocket implements Runnable {
 		running = false;
 
 		try {
-			sendData(MULTICAST_ADDRESS, LEAVE_TYPE, new byte[0]);
+			sendData(MULTICAST_ADDRESS, Packet.LEAVE, new byte[0]);
 		} catch (IOException e) {
 		}
 

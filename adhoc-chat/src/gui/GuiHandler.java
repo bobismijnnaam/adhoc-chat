@@ -255,7 +255,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	@Override
 	public void onReceive(Packet packet) {
 		// if it's an chat packet
-		if (packet.getType() == Packet.CHAT) {
+		if (packet.getType() == Packet.TYPE_CHAT) {
 			try {
 				System.out.println("Received a message");
 				byte[] data = null;
@@ -318,9 +318,9 @@ public class GuiHandler implements ActionListener, AdhocListener {
 		dataStream.writeUTF(inputMessage);
 
 		if (username.equals("GroupChat")) {
-			socket.send(dest, Packet.CHAT, byteStream.toByteArray());
+			socket.send(dest, Packet.TYPE_CHAT, byteStream.toByteArray());
 		} else {
-			socket.send(dest, Packet.CHAT, Crypto.INSTANCE.encrypt(dest, byteStream.toByteArray()));
+			socket.send(dest, Packet.TYPE_CHAT, Crypto.INSTANCE.encrypt(dest, byteStream.toByteArray()));
 		}
 	}
 

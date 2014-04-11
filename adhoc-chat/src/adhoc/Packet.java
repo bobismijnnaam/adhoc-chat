@@ -2,8 +2,16 @@ package adhoc;
 
 public class Packet {
 
+	// packet types
+	public static final byte TYPE_BROADCAST = 0;
+	public static final byte TYPE_CHAT = 1;
+	public static final byte TYPE_LEAVE = 3;
+	public static final byte TYPE_ACK = 2;
+	public static final byte TYPE_FILE = 4;
+	public static final byte TYPE_FILE_OFFER = 5;
+	public static final byte TYPE_FILE_ACCEPT = 6;
+
 	public static byte BROADCAST = 0;
-	public static byte CHAT = 1;
 	public static byte ACK = 2;
 	public static byte LEAVE = 3;
 
@@ -43,4 +51,10 @@ public class Packet {
 	public int getId() {
 		return id;
 	}
+
+	@Override
+	public int hashCode() {
+		return getId();
+	}
+
 }

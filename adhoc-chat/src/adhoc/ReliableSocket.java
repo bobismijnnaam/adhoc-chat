@@ -40,16 +40,18 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 	@Override
 	public void onReceive(Packet packet) {
-		if (packet.getType() != ACK_TYPE && packet.getDestAddress() != AdhocSocket.MULTICAST_ADDRESS) {
-			try {
-				ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-				DataOutputStream dataStream = new DataOutputStream(byteStream);
+		if (packet.getType() != ACK_TYPE) {
+			if (packet.getDestAddress() != AdhocSocket.MULTICAST_ADDRESS) {
+				try {
+					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+					DataOutputStream dataStream = new DataOutputStream(byteStream);
 
-				dataStream.writeInt(packet.getId());
+					dataStream.writeInt(packet.getId());
 
-				socket.sendData(packet.getSourceAddress(), ACK_TYPE, byteStream.toByteArray());
-			} catch (IOException e) {
-				e.printStackTrace();
+					socket.sendData(packet.getSourceAddress(), ACK_TYPE, byteStream.toByteArray());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 			for (AdhocListener listener : listeners) {

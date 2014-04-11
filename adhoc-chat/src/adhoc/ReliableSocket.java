@@ -12,8 +12,6 @@ import java.util.Random;
 import adhoc.AdhocSocket.AdhocListener;
 
 public class ReliableSocket implements AdhocListener, Runnable {
-	private static final byte ACK_TYPE = 2;
-
 	private static final long RESEND_TIME = 1000;
 
 	private AdhocSocket socket;
@@ -40,16 +38,18 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 	@Override
 	public void onReceive(Packet packet) {
-		if (packet.getType() != ACK_TYPE && packet.getDestAddress() != AdhocSocket.MULTICAST_ADDRESS) {
-			try {
-				ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-				DataOutputStream dataStream = new DataOutputStream(byteStream);
+		if (packet.getType() != Packet.ACK) {
+			if (packet.getDestAddress() != AdhocSocket.MULTICAST_ADDRESS) {
+				try {
+					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+					DataOutputStream dataStream = new DataOutputStream(byteStream);
 
-				dataStream.writeInt(packet.getId());
+					dataStream.writeInt(packet.getId());
 
-				socket.sendData(packet.getSourceAddress(), ACK_TYPE, byteStream.toByteArray());
-			} catch (IOException e) {
-				e.printStackTrace();
+					socket.sendData(packet.getSourceAddress(), Packet.ACK, byteStream.toByteArray());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 			for (AdhocListener listener : listeners) {
@@ -81,15 +81,17 @@ public class ReliableSocket implements AdhocListener, Runnable {
 	@Override
 	public void run() {
 		while (socket.isRunning()) {
-			for (Packet p : unackedPackets) {
-				if (System.currentTimeMillis() > resendTimes.get(p)) {
-					try {
-						socket.sendData(p);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+			synchronized (unackedPackets) {
+				for (Packet p : unackedPackets) {
+					if (System.currentTimeMillis() > resendTimes.get(p)) {
+						try {
+							socket.sendData(p);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 
-					resendTimes.put(p, System.currentTimeMillis() + RESEND_TIME);
+						resendTimes.put(p, System.currentTimeMillis() + RESEND_TIME);
+					}
 				}
 			}
 
@@ -133,17 +135,19 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 	@Override
 	public void removedConnection(Connection connection) {
-		ArrayList<Packet> removals = new ArrayList<Packet>();
+		synchronized (unackedPackets) {
+			ArrayList<Packet> removals = new ArrayList<Packet>();
 
-		for (Packet p : unackedPackets) {
-			if (p.getDestAddress() == connection.address) {
-				removals.add(p);
+			for (Packet p : unackedPackets) {
+				if (p.getDestAddress() == connection.address) {
+					removals.add(p);
 
-				resendTimes.remove(p);
+					resendTimes.remove(p);
+				}
 			}
-		}
 
-		unackedPackets.removeAll(removals);
+			unackedPackets.removeAll(removals);
+		}
 
 		for (AdhocListener listener : listeners) {
 			listener.removedConnection(connection);

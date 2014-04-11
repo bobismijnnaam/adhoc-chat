@@ -21,6 +21,13 @@ public class GradientList {
 	}
 
 	/**
+	 * @return basic sendcolor gradient
+	 */
+	public Gradient sendColor() {
+		return new Gradient("#f22d2d", "#d10c0c");
+	}
+
+	/**
 	 * Contains two colors.
 	 */
 	public class Gradient {

@@ -64,7 +64,7 @@ public class MainScreen {
 		for (int i = 0; i < components.length; i++) {
 			fullchat.remove(components[i]);
 		}
-		System.out.println("Removed chat");
+
 		if (!init) {
 			init = true;
 			oldButton = users.get(name);
@@ -84,6 +84,7 @@ public class MainScreen {
 		fullchat.add(newTextField, "span, w 530px, h 50px");
 		fullchat.revalidate();
 		fullchat.repaint();
+		realTextFields.get(name).requestFocusInWindow();
 	}
 
 	/**
@@ -171,31 +172,45 @@ public class MainScreen {
 	 */
 	public Message addMessage(String message, String username, String color1, String color2, boolean incoming,
 			String group, String timeStamp) {
-		Message newMessage = new Message("<html><font color=#ffffdd><font size=4><b>" + username + "</b></font><br />"
-				+ message + "<br /><font size=2>" + timeStamp + "</font></font></html>", Color.decode(color1),
-				Color.decode(color2));
+		// Icon icon = new ImageIcon("images/icon_smile.gif");
+		Message newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
+				+ "</u></b></font><br /><font size=3>" + formatMessage(message)
+				+ "</font><br /><font size=2><font color=white>" + timeStamp + "</font></font></font></body></html>",
+				Color.decode(color1), Color.decode(color2));
 		JPanel chatScreen;
+		// newMessage.setIcon(icon);
 		chatScreen = chatScreens.get(group);
 		if (incoming) {
-			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px");
+			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, growx, wmax 300");
 		} else {
-			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px");
+			chatScreen.add(newMessage, "wrap 10, w 300px, h 50px, gapx 200px, growx, wmax 300");
 		}
 		mainScreen.revalidate();
 		mainScreen.repaint();
 		return newMessage;
 	}
 
+	/**
+	 * Formats the string of the message
+	 * 
+	 * @return the formatted String
+	 */
+	private String formatMessage(String inputMessage) {
+		String formattedMessage = inputMessage;
+		return formattedMessage;
+	}
+
 	public void addSize(int size, String name) {
 		if (size > 440) {
 			JPanel chatScreen = chatScreens.get(name);
 			Dimension old = chatScreen.getPreferredSize();
-			old.height = size + 70;
+			old.height = size + 10;
 			chatScreen.setPreferredSize(old);
 			chatScreen.setPreferredSize(chatScreen.getPreferredSize());
 			chatScreen.revalidate();
-			mainScreen.revalidate();
-			mainScreen.repaint();
+			chatScreen.repaint();
+			// mainScreen.revalidate();
+			// mainScreen.repaint();
 		}
 	}
 
@@ -204,6 +219,7 @@ public class MainScreen {
 		JScrollBar vertical = scrollpane.getVerticalScrollBar();
 		vertical.setValue(vertical.getMaximum());
 		scrollpane.revalidate();
+		scrollpane.repaint();
 	}
 
 	/**
@@ -238,6 +254,19 @@ public class MainScreen {
 		chatScreen.setSize(500, 500);
 		chatScreen.setBackground(Color.LIGHT_GRAY);
 		return chatScreen;
+	}
+
+	/**
+	 * Adds a notification to button
+	 * 
+	 * @param group
+	 *            - the group to add notification to
+	 */
+	public void addNotification(String group) {
+		JButton toChange = users.get(group);
+		if (!(toChange == oldButton)) {
+			toChange.setText("<html><font color='white'>" + toChange.getName() + " | (new)" + "</font></html>");
+		}
 	}
 
 	/**

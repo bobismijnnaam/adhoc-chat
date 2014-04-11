@@ -19,9 +19,6 @@ public class AdhocSocket implements Runnable {
 	private static final int PORT = 4001;
 	protected static final long BROADCAST_TIME = 1000;
 
-	public static final byte BROADCAST_TYPE = 0;
-	private static final byte LEAVE_TYPE = 3;
-
 	public static final byte MULTICAST_ADDRESS = -1;
 
 	protected static final long TIMEOUT = 10000;
@@ -41,21 +38,12 @@ public class AdhocSocket implements Runnable {
 	private final Random random = new Random();
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		// try {
-		// Thread.sleep(5000);
-		// } catch (InterruptedException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		//
-		// adhocSocket.close();
-
 		AdhocSocket adhocSocket = new AdhocSocket(args[0], new byte[0]);
 
 		AdhocListener ahListener = new AdhocListener() {
 			@Override
 			public void onReceive(Packet packet) {
-				if (packet.getType() == BROADCAST_TYPE) {
+				if (packet.getType() == Packet.BROADCAST) {
 					System.out.println("[UNIT TEST] Received broadcast");
 				} else {
 					System.out.println("[UNIT TEST] Received message: " + new String(packet.getData()));
@@ -126,7 +114,7 @@ public class AdhocSocket implements Runnable {
 						dataStream.writeUTF(name);
 						dataStream.write(key);
 
-						sendData(MULTICAST_ADDRESS, BROADCAST_TYPE, byteStream.toByteArray());
+						sendData(MULTICAST_ADDRESS, Packet.BROADCAST, byteStream.toByteArray());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -212,35 +200,36 @@ public class AdhocSocket implements Runnable {
 		Packet packet = new Packet(source, dest, hopCount, type, id, data);
 
 		if (!isDuplicate(id))
-			// System.out.println("received " + Integer.toHexString(id) +
-			// " from " + source);
+			System.out.println("received " + Integer.toHexString(id) + " from " + source);
 
-			if (dest != address) {
-				if (source != address) {
-					if (hopCount > 0 && !isDuplicate(id)) {
-						hopCount--;
-						sendData(source, dest, hopCount, type, id, data);
+		if (dest == address || dest == MULTICAST_ADDRESS) {
+			if (!isDuplicate(id)) {
+				for (AdhocListener listener : listeners) {
+					listener.onReceive(packet);
+				}
+			}
+		}
 
-						if (type == BROADCAST_TYPE) {
-							handleBroadcast(packet);
-						}
+		if (dest != address) {
+			if (source != address) {
+				if (hopCount > 0 && !isDuplicate(id)) {
+					hopCount--;
+					sendData(source, dest, hopCount, type, id, data);
 
-						if (type == LEAVE_TYPE) {
-							Connection connection = getConnection(source);
-							connections.remove(connection);
+					if (type == Packet.BROADCAST) {
+						handleBroadcast(packet);
+					}
 
+					if (type == Packet.LEAVE) {
+						Connection connection = getConnection(source);
+						connections.remove(connection);
+
+						if (connection != null) {
 							for (AdhocListener listener : listeners) {
 								listener.removedConnection(connection);
 							}
 						}
 					}
-				}
-			}
-
-		if (dest == address || dest == MULTICAST_ADDRESS) {
-			if (!isDuplicate(id)) { // Satan's schild
-				for (AdhocListener listener : listeners) {
-					listener.onReceive(packet);
 				}
 			}
 		}
@@ -292,6 +281,9 @@ public class AdhocSocket implements Runnable {
 
 	private void sendData(byte source, byte destAddress, byte hopCount, byte packetType, int id, byte[] data)
 			throws IOException {
+		forwardedPackets[forwardedPacketsIndex] = id;
+		forwardedPacketsIndex = (forwardedPacketsIndex + 1) % forwardedPackets.length;
+
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 
@@ -302,13 +294,10 @@ public class AdhocSocket implements Runnable {
 		dataStream.writeInt(id);
 		dataStream.write(data);
 
-		// if (packetType != BROADCAST_TYPE)
-		// System.out.println("sent " + Integer.toHexString(id));
+		if (packetType != Packet.BROADCAST)
+			System.out.println("sent " + Integer.toHexString(id));
 
 		socket.send(new DatagramPacket(byteStream.toByteArray(), byteStream.size(), inetAddress, PORT));
-
-		forwardedPackets[forwardedPacketsIndex] = id;
-		forwardedPacketsIndex = (forwardedPacketsIndex + 1) % forwardedPackets.length;
 	}
 
 	public ArrayList<Connection> getConnections() {
@@ -335,7 +324,7 @@ public class AdhocSocket implements Runnable {
 		running = false;
 
 		try {
-			sendData(MULTICAST_ADDRESS, LEAVE_TYPE, new byte[0]);
+			sendData(MULTICAST_ADDRESS, Packet.LEAVE, new byte[0]);
 		} catch (IOException e) {
 		}
 

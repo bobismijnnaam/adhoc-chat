@@ -2,6 +2,9 @@ package gui;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -25,9 +28,7 @@ import adhoc.Packet;
 import adhoc.ReliableSocket;
 import crypto.Crypto;
 
-public class GuiHandler implements java.awt.event.ActionListener, AdhocListener {
-	private static final byte CHAT_TYPE = 1;
-
+public class GuiHandler implements ActionListener, AdhocListener {
 	// the loginGUI
 	private Login loginGUI;
 	private JFrame frame;
@@ -37,7 +38,7 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	// if in mainscreen
 	private boolean main = false;
 
-	// userlist, adreslists, colorlist
+	// userlist, addresslists, colorlist
 	private HashMap<Byte, String> users = new HashMap<Byte, String>();
 	private HashMap<String, Byte> addr = new HashMap<String, Byte>();
 	private HashMap<String, GradientList.Gradient> colors = new HashMap<String, GradientList.Gradient>();
@@ -68,6 +69,20 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		frame.add(panel);
 		frame.setVisible(true);
 		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+		// set focus
+		// loginGUI.setFocus();
+
+		// on closing sent leave message
+		frame.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				System.out.println("Closed");
+				if (main)
+					socket.close();
+				super.windowClosed(e);
+			}
+		});
 	}
 
 	/**
@@ -77,12 +92,6 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	private void tryLogin(String username) {
 		// check username (longer than 3 characters only numbers and characters)
 		if (loginGUI.getUsername().matches("\\w{3,}+")) {
-			try {
-				socket = new ReliableSocket(username, Crypto.INSTANCE.getMyKey());
-				socket.addListener(this);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);
@@ -99,37 +108,16 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 			frame.add(mainScreenPanel);
 			frame.pack();
 			frame.setLocationRelativeTo(null);
+
+			try {
+				socket = new ReliableSocket(username, Crypto.INSTANCE.getMyKey());
+				socket.addListener(this);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		} else {
 			// give feedback that the username is bad
 			loginGUI.setUsernameBad();
-		}
-	}
-
-	/**
-	 * Processes the message, gives the correct parameters to sendmessage
-	 */
-	private void processMessage(String group) {
-		// retrieve message from textfield in associated group
-		String message = mainScreen.getMessage(group);
-		if (!message.equals("") && message.trim().length() > 0) {
-			try {
-				// send message to group (or individual)
-				sendMessage(message, group);
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-
-			Message newMessage;
-			long timestamp = System.currentTimeMillis();
-			Calendar cal = Calendar.getInstance();
-			cal.setTimeInMillis(timestamp);
-			String date = df.format(cal.getTime());
-			newMessage = mainScreen.addMessage(message, mainScreen.getUsername(), "#f22d2d", "#d10c0c", false, group,
-					date);
-			frame.pack();
-			mainScreen.addSize(newMessage.getBounds().y, group);
-			frame.pack();
-			mainScreen.scrollDown(group);
 		}
 	}
 
@@ -138,11 +126,15 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		// create color and timestamp
+		GradientList list = new GradientList();
+		GradientList.Gradient color = list.sendColor();
+		long timestamp = System.currentTimeMillis();
 		if (main && ((Component) e.getSource()).getName().contains("enter")) {
 			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
 			String group = messageParts[1];
 			// process the message
-			processMessage(group);
+			processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
 		} else {
 			if (((Component) e.getSource()).getName().equals("loginkey")) {
 				// try login
@@ -156,11 +148,42 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 					String[] messageParts = ((Component) e.getSource()).getName().split("send");
 					String group = messageParts[1];
 					// process the message
-					processMessage(group);
+					processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
 				} else {
 					mainScreen.changeChat(source.getName());
 				}
 			}
+		}
+	}
+
+	/**
+	 * Processes the message, gives the correct parameters to sendmessage
+	 */
+	private void processMessage(String group, boolean incoming, String username, GradientList.Gradient color,
+			long timestamp, String message) {
+		// retrieve message from textfield in associated group
+		if (!incoming)
+			message = mainScreen.getMessage(group);
+		if (!message.equals("") && message.trim().length() > 0) {
+			if (!incoming) {
+				try {
+					// send message to group (or individual)
+					sendMessage(message, group);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+
+			Message newMessage;
+			Calendar cal = Calendar.getInstance();
+			cal.setTimeInMillis(timestamp);
+			String date = df.format(cal.getTime());
+			newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, incoming, group, date);
+			frame.pack();
+			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
+			// System.out.println(newMessage.getBounds());
+			frame.pack();
+			mainScreen.scrollDown(group);
 		}
 	}
 
@@ -179,9 +202,11 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 
 		// picks a color from the gradientcolor list and associates it with the
 		// username
-		GradientList.Gradient color = gradients.getGradient(index);
-		colors.put(connection.name, color);
-		System.out.println(colors.size());
+		if (!colors.containsKey(connection.name)) {
+			GradientList.Gradient color = gradients.getGradient(index);
+			colors.put(connection.name, color);
+			System.out.println(colors.size());
+		}
 	}
 
 	/**
@@ -191,7 +216,6 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	public void removedConnection(Connection connection) {
 		System.out.println("EEN CONNECTIE GING WEG");
 		mainScreen.removeUser(connection.name);
-		// because bob wants to reread messages from his lovers
 		// mainScreen.changeChat("GroupChat");
 	}
 
@@ -203,15 +227,17 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 	@Override
 	public void onReceive(Packet packet) {
 		System.out.println("Receive not ack packet");
-		if (packet.getType() == CHAT_TYPE) {
+		if (packet.getType() == Packet.TYPE_CHAT) {
 			try {
 				System.out.println("Received a message");
 				byte[] data = null;
-				byte addr = packet.getSourceAddress();
+				byte addr = packet.getDestAddress();
+				boolean isGroupChat = false;
 
 				// if it's a broadcast
 				if (addr == AdhocSocket.MULTICAST_ADDRESS) {
 					data = packet.getData();
+					isGroupChat = true;
 				} else {
 					data = Crypto.INSTANCE.decrypt(packet.getData());
 				}
@@ -219,22 +245,23 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 				DataInputStream dataStream = new DataInputStream(new ByteArrayInputStream(data));
 				long timestamp = dataStream.readLong();
 
-				Calendar cal = Calendar.getInstance();
-				cal.setTimeInMillis(timestamp);
-				String date = df.format(cal.getTime());
-
 				String message = dataStream.readUTF();
-				String username = users.get(addr);
+				String username = users.get(packet.getSourceAddress());
 				GradientList.Gradient color = colors.get(username);
-				Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, true,
-						username, date);
-				frame.pack();
-				mainScreen.addSize(newMessage.getBounds().y, username);
-				frame.pack();
-				frame.revalidate();
-				frame.repaint();
-				mainScreen.scrollDown(username);
-				frame.pack();
+				String dest = username;
+
+				// drop if connection was not yet esthablished
+				if (users.containsKey(packet.getSourceAddress())) {
+
+					if (isGroupChat)
+						dest = "GroupChat";
+					System.out.println(message + username + dest);
+
+					mainScreen.addNotification(dest);
+
+					processMessage(dest, true, username, color, timestamp, message);
+					mainScreen.scrollDown(dest);
+				}
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -257,21 +284,15 @@ public class GuiHandler implements java.awt.event.ActionListener, AdhocListener 
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 
-		byte dest;
-		if (username.equals("GroupChat")) {
-			dest = AdhocSocket.MULTICAST_ADDRESS;
-
-		} else {
-			dest = addr.get(username);
-		}
+		byte dest = addr.get(username);
 
 		dataStream.writeLong(System.currentTimeMillis());
 		dataStream.writeUTF(inputMessage);
 
 		if (username.equals("GroupChat")) {
-			socket.send(dest, CHAT_TYPE, byteStream.toByteArray());
+			socket.send(dest, Packet.TYPE_CHAT, byteStream.toByteArray());
 		} else {
-			socket.send(dest, CHAT_TYPE, Crypto.INSTANCE.encrypt(dest, byteStream.toByteArray()));
+			socket.send(dest, Packet.TYPE_CHAT, Crypto.INSTANCE.encrypt(dest, byteStream.toByteArray()));
 		}
 	}
 

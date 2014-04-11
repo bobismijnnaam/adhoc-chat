@@ -211,8 +211,8 @@ public class AdhocSocket implements Runnable {
 
 		Packet packet = new Packet(source, dest, hopCount, type, id, data);
 
-		if (!isDuplicate(id))
-			System.out.println("received " + Integer.toHexString(id) + " from " + source);
+		if (type != BROADCAST_TYPE)
+			System.out.println("received " + Integer.toHexString(id) + " from " + source + " : " + type);
 
 		if (hopCount > 0 && !isDuplicate(id)) {
 			hopCount--;
@@ -233,15 +233,13 @@ public class AdhocSocket implements Runnable {
 		}
 
 		if (dest == address || dest == MULTICAST_ADDRESS) {
-			if (!isDuplicate(id)) {
-				for (AdhocListener listener : listeners) {
-					listener.onReceive(packet);
-				}
+			for (AdhocListener listener : listeners) {
+				listener.onReceive(packet);
 			}
 		}
 	}
 
-	private boolean isDuplicate(int packetId) {
+	public boolean isDuplicate(int packetId) {
 		for (int i = 0; i < forwardedPackets.length; i++) {
 			if (forwardedPackets[i] == packetId)
 				return true;

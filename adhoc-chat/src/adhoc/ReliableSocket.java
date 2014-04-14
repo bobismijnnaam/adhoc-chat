@@ -63,15 +63,18 @@ public class ReliableSocket implements AdhocListener, Runnable {
 				int id = dataStream.readInt();
 
 				Packet ackedPacket = null;
-				for (Packet p : unackedPackets) {
-					if (p.getId() == id) {
-						ackedPacket = p;
-						break;
+				synchronized (unackedPackets) {
+					for (Packet p : unackedPackets) {
+						if (p.getId() == id) {
+							ackedPacket = p;
+							break;
+						}
 					}
 				}
-
-				unackedPackets.remove(ackedPacket);
-				resendTimes.remove(ackedPacket);
+				synchronized (unackedPackets) {
+					unackedPackets.remove(ackedPacket);
+					resendTimes.remove(ackedPacket);
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -117,13 +120,19 @@ public class ReliableSocket implements AdhocListener, Runnable {
 		socket.sendData(packet);
 
 		if (dest != AdhocSocket.MULTICAST_ADDRESS) {
-			unackedPackets.add(packet);
-			resendTimes.put(packet, System.currentTimeMillis() + RESEND_TIME);
+			synchronized (unackedPackets) {
+				unackedPackets.add(packet);
+				resendTimes.put(packet, System.currentTimeMillis() + RESEND_TIME);
+			}
 		}
 	}
 
 	public void close() {
 		socket.close();
+	}
+
+	public AdhocSocket getAdhocSocket() {
+		return socket;
 	}
 
 	@Override

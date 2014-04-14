@@ -1,5 +1,8 @@
 package adhoc;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+
 public class Packet {
 
 	// packet types
@@ -26,6 +29,10 @@ public class Packet {
 		this.data = data;
 		this.type = type;
 		this.id = id;
+	}
+
+	public DataInputStream getDataInputStream() {
+		return new DataInputStream(new ByteArrayInputStream(data));
 	}
 
 	public byte getSourceAddress() {

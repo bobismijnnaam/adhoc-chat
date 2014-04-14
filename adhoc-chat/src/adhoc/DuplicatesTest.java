@@ -10,7 +10,7 @@ import crypto.Crypto;
 
 public class DuplicatesTest {
 	public static void main(String[] args) throws IOException, InterruptedException {
-		boolean sender = true;
+		boolean sender = false;
 		final byte dest = 1;
 
 		if (sender) {
@@ -23,7 +23,7 @@ public class DuplicatesTest {
 
 				dataStream.writeInt(random.nextInt());
 
-				socket.send(dest, (byte) 5, byteStream.toByteArray());
+				socket.send(dest, (byte) 6, byteStream.toByteArray());
 
 				Thread.sleep(5);
 			}
@@ -39,12 +39,14 @@ public class DuplicatesTest {
 
 				@Override
 				public void onReceive(Packet packet) {
-					if (packet.getType() == 5 && packet.getSourceAddress() == dest) {
+					if (packet.getType() == 6 && packet.getSourceAddress() == dest) {
 						try {
 							int data = packet.getDataInputStream().readInt();
 
 							if (data == prevData) {
 								System.out.println("Duplicate Packet!");
+							} else {
+								// System.out.println("Non-duplicate Packet!");
 							}
 
 							prevData = data;

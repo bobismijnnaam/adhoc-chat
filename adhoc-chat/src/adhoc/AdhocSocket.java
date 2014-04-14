@@ -32,8 +32,11 @@ public class AdhocSocket implements Runnable {
 	private InetAddress inetAddress;
 
 	// used for filtering duplicate packets
-	private int[] forwardedPackets = new int[1000];
+	private int[] forwardedPackets = new int[10000];
 	private int forwardedPacketsIndex = 0;
+
+	private int[] processedPackets = new int[10000];
+	private int processedPacketsIndex = 0;
 
 	private final Random random = new Random();
 
@@ -199,21 +202,20 @@ public class AdhocSocket implements Runnable {
 
 		Packet packet = new Packet(source, dest, hopCount, type, id, data);
 
-		// if (!isDuplicate(id))
-		// System.out.println("received " + Integer.toHexString(id) + " from " +
-		// source);
-
 		if (dest == address || dest == MULTICAST_ADDRESS) {
-			if (!isDuplicate(id)) {
+			if (!isProcessed(id)) {
 				for (AdhocListener listener : listeners) {
 					listener.onReceive(packet);
 				}
+
+				processedPackets[processedPacketsIndex] = id;
+				processedPacketsIndex = (processedPacketsIndex + 1) % processedPackets.length;
 			}
 		}
 
 		if (dest != address) {
 			if (source != address) {
-				if (hopCount > 0 && !isDuplicate(id)) {
+				if (hopCount > 0 && !isForwarded(id)) {
 					hopCount--;
 					sendData(source, dest, hopCount, type, id, data);
 
@@ -236,9 +238,17 @@ public class AdhocSocket implements Runnable {
 		}
 	}
 
-	private boolean isDuplicate(int packetId) {
-		for (int i = 0; i < forwardedPackets.length; i++) {
-			if (forwardedPackets[i] == packetId)
+	private boolean isProcessed(int packetId) {
+		return isInArray(packetId, processedPackets);
+	}
+
+	private boolean isForwarded(int packetId) {
+		return isInArray(packetId, forwardedPackets);
+	}
+
+	private boolean isInArray(int value, int[] array) {
+		for (int i = 0; i < array.length; i++) {
+			if (array[i] == value)
 				return true;
 		}
 

@@ -181,7 +181,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 		// outgoing message
 		if (!incoming)
 			message = mainScreen.getMessage(group);
-		if (!message.equals("") && message.trim().length() > 0) {
+		if (!message.equals("") && message.trim().length() > 0 && !message.contains("<script")) {
 			if (!incoming) {
 				try {
 					// send message to group (or individual)

@@ -1,5 +1,6 @@
 package crypto;
 
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -14,7 +15,11 @@ import java.util.HashMap;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import util.Util;
 
@@ -33,11 +38,18 @@ public class Crypto {
 	public static final String ALGORITHM = "RSA";
 	public static final String CIPHER = "RSA/ECB/PKCS1Padding";
 
+	public static final int SYMMETRIC_KEY_LENGTH = 128;
+
+	// Public Key variables
 	private Key publicKey;
 	private Key privateKey;
 	private Cipher myCipher;
-
 	private HashMap<Byte, Cipher> ciphers = new HashMap<Byte, Cipher>();
+
+	// Symmetric Key variables
+	private HashMap<Byte, Cipher> symmetricCiphers = new HashMap<Byte, Cipher>();
+	private HashMap<Byte, byte[]> symmetricKeys = new HashMap<Byte, byte[]>();
+	private HashMap<Byte, byte[]> symmetricIVs = new HashMap<Byte, byte[]>();
 
 	/**
 	 * Initializes the crypto class. Provides you with two (secure) randomly
@@ -265,12 +277,174 @@ public class Crypto {
 	}
 
 	/**
+	 * Start a session with given parameters (which you receive from another
+	 * client). If you use this initializer Crypto expects you to want to
+	 * decrypt data.
+	 * 
+	 * @param client
+	 *            The client who started the session
+	 * @param key
+	 *            The key used for this session
+	 * @param iv
+	 *            The initialization vector for this session
+	 */
+	public void startSession(byte client, byte[] key, byte[] iv) {
+		startSession(client, key, iv, Cipher.DECRYPT_MODE);
+	}
+
+	/**
+	 * Start a session and generate IV & session key. Retrieve these with
+	 * getSessionKey() and getSessionIV(). If you use this initializer Crypto
+	 * expects you to want to encrypt data.
+	 * 
+	 * @param client
+	 *            The client with whom you want to initialize a session
+	 */
+	public void startSession(byte client) {
+		try {
+			KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+			keyGen.init(SYMMETRIC_KEY_LENGTH);
+			SecretKey k = keyGen.generateKey();
+
+			startSession(client, k.getEncoded(), null, Cipher.ENCRYPT_MODE);
+
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Initialize the variables needed for a session. Is used internally.
+	 * 
+	 * @param client
+	 *            The client with whom the session is shared
+	 * @param key
+	 *            The key for this session
+	 * @param iv
+	 *            The IV for this session
+	 * @param cipherMode
+	 *            The cipher mode (receiving = decrypt, sending = encrypt)
+	 */
+	private void startSession(byte client, byte[] key, byte[] iv, int cipherMode) {
+		if (symmetricCiphers.containsKey(client)) {
+			System.out.println("[Crypto] Session with client " + client
+					+ "detected! Overwriting old session information");
+		}
+
+		try {
+			Cipher c = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+
+			SecretKeySpec k = new SecretKeySpec(key, "AES");
+			if (iv == null) {
+				c.init(cipherMode, k);
+			} else {
+				c.init(cipherMode, k, new IvParameterSpec(iv));
+			}
+
+			symmetricCiphers.put(client, c);
+			symmetricKeys.put(client, key);
+			symmetricIVs.put(client, c.getIV());
+		} catch (NoSuchAlgorithmException e) {
+			System.out.println("[ERROR] No such algorithm");
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			System.out.println("[ERROR] No such padding");
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			System.out.println("[ERROR] Invalid key");
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			System.out.println("[ERROR] Invalid algorithm parameters");
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Returns the session key with a given client. Prints a warning & returns
+	 * null on error
+	 * 
+	 * @param client
+	 *            The client with whom the session is shared
+	 * @return The session key
+	 */
+	public byte[] getSessionKey(byte client) {
+		if (symmetricKeys.containsKey(client)) {
+			return symmetricKeys.get(client);
+		} else {
+			System.out.println("[Crypto] No known session with client " + client);
+			return null;
+		}
+	}
+
+	/**
+	 * Returns the IV for a given session. Prints a (clear) warning & returns
+	 * null on error
+	 * 
+	 * @param client
+	 *            The client with whom the session is shared
+	 * @return The session IV
+	 */
+	public byte[] getSessionIV(byte client) {
+		if (symmetricIVs.containsKey(client)) {
+			return symmetricIVs.get(client);
+		} else {
+			System.out.println("[Crypto] No known session with client " + client);
+			return null;
+		}
+	}
+
+	/**
+	 * Encrypts or decrypts given byte[]. Depends on which startSession was used
+	 * (see their respective descriptions). Will print a warning & return null
+	 * on error. This function can be used until endSession() is called
+	 * 
+	 * @param client
+	 *            The client with whom the session is shared -
+	 * @param msg
+	 *            The message to en-/decrypt
+	 * @return The en-/decoded message
+	 */
+	public byte[] executeSession(byte client, byte[] msg) {
+		try {
+			Cipher c = symmetricCiphers.get(client);
+			return c.doFinal(msg);
+		} catch (IllegalBlockSizeException e) {
+			System.out.println("[ERROR] Illegal block size");
+			e.printStackTrace();
+			return null;
+		} catch (BadPaddingException e) {
+			System.out.println("[ERROR] Bad padding");
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	/**
+	 * Removes all entries related to the session shared with the given client.
+	 * 
+	 * @param client
+	 *            The client with whom the session was shared.
+	 */
+	public void endSession(byte client) {
+		if (symmetricCiphers.containsKey(client)) {
+			symmetricCiphers.remove(client);
+			symmetricKeys.remove(client);
+			symmetricKeys.remove(client);
+		} else {
+			System.out.println("[Crypto] No known session with client " + client);
+		}
+	}
+
+	/**
 	 * Test program for the crypto class.
 	 * 
 	 * @param args
 	 *            Command line parameters. Unused.
 	 */
 	public static void main(String[] args) {
+		// PK TEST
+		System.out.println("[PK TEST]\n");
 		Crypto[] cryptos = new Crypto[] { new Crypto(), new Crypto(), new Crypto() };
 
 		cryptos[0].addClient((byte) 1, cryptos[1].getMyKey());
@@ -289,12 +463,24 @@ public class Crypto {
 		Crypto.testMsg(1, msg, cryptos);
 		Crypto.testMsg(2, msg, cryptos);
 
-		msg = "BarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBar";
+		msg = "BarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBar"
+				+ "BarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBar"
+				+ "BarBarBarBarBarBarBarBarBarBasrBarBarBarBarBarBarBarBarBarBarBarBarBarBar"
+				+ "BarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBarBar"
+				+ "BarBarBarBarBarBarBarBarBar";
 		System.out.println("Long test [Bar*lots]\n");
 
 		Crypto.testMsg(0, msg, cryptos);
 		Crypto.testMsg(1, msg, cryptos);
 		Crypto.testMsg(2, msg, cryptos);
+
+		// SYMMETRIC TEST
+		System.out.println("[SYMMETRIC TEST]");
+
+		System.out.println("\nShort test [Foo]\n");
+		testSymmetricMsg("Foo");
+		System.out.println("Long test [Bar*lots]\n");
+		testSymmetricMsg(msg);
 	}
 
 	/**
@@ -324,5 +510,24 @@ public class Crypto {
 		}
 
 		System.out.println();
+	}
+
+	public static void testSymmetricMsg(String msg) {
+		System.out.println("Sender's message: " + msg);
+		Crypto[] cryptos = new Crypto[] { new Crypto(), new Crypto() };
+
+		cryptos[0].startSession((byte) 1);
+		cryptos[1].startSession((byte) 0, cryptos[0].getSessionKey((byte) 1), cryptos[0].getSessionIV((byte) 1));
+
+		byte[] encryptedMsg = cryptos[0].executeSession((byte) 1, msg.getBytes());
+
+		byte[] decryptedMsg = cryptos[1].executeSession((byte) 0, encryptedMsg);
+		String decryptedString = new String(decryptedMsg);
+
+		System.out.println("Receiver's " + (decryptedString.equals(msg) ? "correct" : "incorrect") + " Result: \""
+				+ decryptedString + "\"\n");
+
+		cryptos[0].endSession((byte) 1);
+		cryptos[1].endSession((byte) 0);
 	}
 }

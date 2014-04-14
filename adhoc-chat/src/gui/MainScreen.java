@@ -194,9 +194,10 @@ public class MainScreen {
 	 * @param field
 	 *            - the textfield assosiated with the handler
 	 */
-	private void addController(GuiHandler handler, JButton send, JTextField field) {
+	private void addController(GuiHandler handler, JButton send, JTextField field, JButton fileUpload) {
 		send.addActionListener(handler);
 		field.addActionListener(handler);
+		fileUpload.addActionListener(handler);
 	} // addController()
 
 	/**
@@ -281,9 +282,18 @@ public class MainScreen {
 		messageBox.setName("enter" + name);
 		messageBox.setBackground(Color.decode("#e2e2e2"));
 		messageBox.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-		sendButton.add(messageBox, "split 2, w 400px, h 45px");
 		Icon send = new ImageIcon("images/send.png");
+		Icon file = new ImageIcon("images/file.png");
+		JButton fileUpload = new JButton(file);
 		JButton actualSendButton = new JButton(send);
+		fileUpload.setName("upload" + name);
+		fileUpload.setMargin(new Insets(0, 0, 0, 0));
+		fileUpload.setOpaque(false);
+		fileUpload.setContentAreaFilled(false);
+		fileUpload.setBorderPainted(false);
+		fileUpload.setBorder(null);
+		sendButton.add(fileUpload, "split 3, w 50px, h 50px");
+		sendButton.add(messageBox, "w 350px, h 45px");
 		actualSendButton.setName("send" + name);
 		actualSendButton.setMargin(new Insets(0, 0, 0, 0));
 		actualSendButton.setOpaque(false);
@@ -292,7 +302,7 @@ public class MainScreen {
 		actualSendButton.setBorder(null);
 		realTextFields.put(name, messageBox);
 		sendButton.add(actualSendButton, "w 100px, h 50px");
-		addController(handler, actualSendButton, messageBox);
+		addController(handler, actualSendButton, messageBox, fileUpload);
 		return sendButton;
 	}
 

@@ -16,6 +16,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
@@ -114,6 +115,15 @@ public class GuiHandler implements ActionListener, AdhocListener {
 					String group = messageParts[1];
 					// process the message
 					processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
+				} else if (source.getName().contains("upload")) {
+					final JFileChooser fc = new JFileChooser();
+					fc.addActionListener(new ActionListener() {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							System.out.println(fc.getSelectedFile());
+						}
+					});
+					fc.showOpenDialog(frame);
 				} else {
 					mainScreen.changeChat(source.getName());
 				}

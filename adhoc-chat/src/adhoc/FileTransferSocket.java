@@ -34,13 +34,14 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 	private HashMap<TCPPacket, Long> pendingOffers = new HashMap<TCPPacket, Long>();
 
 	int mode = 0; // 0 is receiving, 1 is sender
+	private File currentSendingFile;
 
 	// unit test
 	public static void main(String[] args) {
 		try {
 			FileTransferSocket sock = new FileTransferSocket(new AdhocSocket("willem" + random.nextInt(),
 					Crypto.INSTANCE.getMyKey()));
-			sock.sendOffer((byte) 1, "space.jpg");
+			// sock.sendOffer((byte) 1, "space.jpg");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -57,18 +58,17 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 	}
 
 	/**
-	 * 
 	 * @param dstAddress
 	 * @param filepath
 	 * @throws IOException
 	 */
-	public void sendOffer(byte dstAddress, String filepath) throws IOException {
+	public void sendOffer(byte dstAddress, File fileToSend) throws IOException {
 		System.out.println("making offer");
 		mode = 1; // sender
+		this.currentSendingFile = fileToSend;
 		// open file and construct packet
-		File file = new File(filepath);
-		long sizeBytes = file.length();
-		String filename = file.getName();
+		long sizeBytes = fileToSend.length();
+		String filename = fileToSend.getName();
 		int offerNr = random.nextInt();
 
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -230,7 +230,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 				long sizeBytes = dataStreamIn.readLong();
 				// prompt to accept or not...
 				for (FileSocketListener l : listeners) {
-					l.onReceiveFileOffer(filename, offerNr, (long) (sizeBytes / 1024f)); // kb
+					l.onReceiveFileOffer(filename, offerNr, (long) (sizeBytes / 1024f), tcpPacket.getSourceAddress()); // kb
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -277,7 +277,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		// filename in root (relative)
 		BufferedInputStream bufStream = null;
 		try {
-			File file = new File(filename);
+			File file = currentSendingFile;
 			FileInputStream fis;
 			fis = new FileInputStream(file);
 			bufStream = new BufferedInputStream(fis);
@@ -321,7 +321,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 	public interface FileSocketListener {
 
-		public void onReceiveFileOffer(String filename, int offerNr, long sizeKb);
+		public void onReceiveFileOffer(String filename, int offerNr, long sizeKb, byte srcAddress);
 
 		public void onFileTransferComplete(String filename);
 

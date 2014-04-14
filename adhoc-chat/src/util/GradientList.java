@@ -27,9 +27,10 @@ public class GradientList {
 		return new Gradient("#f22d2d", "#d10c0c");
 	}
 
-	/**
-	 * Contains two colors.
-	 */
+	public int getSize() {
+		return list.length;
+	}
+
 	public class Gradient {
 		public String color1;
 		public String color2;

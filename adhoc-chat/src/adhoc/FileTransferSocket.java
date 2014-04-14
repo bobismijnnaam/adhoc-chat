@@ -1,6 +1,7 @@
 package adhoc;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -8,12 +9,16 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 
 import adhoc.AdhocSocket.AdhocListener;
+import crypto.Crypto;
 
 public class FileTransferSocket implements AdhocListener, Runnable {
 
@@ -35,11 +40,10 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 	public static void main(String[] args) {
 		try {
-			FileTransferSocket sock = new FileTransferSocket(new AdhocSocket("willem" + random.nextInt(), new byte[] {
-					0, 0, 0, 0 }));
-
-			sock.makeOffer((byte) 1, "cheatcodes.txt");
-
+			FileTransferSocket sock = new FileTransferSocket(new AdhocSocket("willem" + random.nextInt(),
+					Crypto.INSTANCE.getMyKey()));
+			sock.makeOffer((byte) 1, "SPACE.jpg");
+			//
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -60,6 +64,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		long sizeBytes = file.length();
 		String filename = file.getName();
 		int offerNr = random.nextInt();
+		int nrOfPackets = (int) Math.ceil((float) sizeBytes / (float) PACKET_SIZE);
 
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
@@ -68,6 +73,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		dataStream.writeInt(offerNr);
 		dataStream.writeUTF(filename);
 		dataStream.writeLong(sizeBytes);
+		dataStream.writeInt(nrOfPackets);
 
 		byte[] offerData = byteStream.toByteArray();
 		Packet innerpacket = new Packet(socket.getAddress(), dstAddress, (byte) 8, Packet.TYPE_FILE_OFFER,
@@ -90,46 +96,52 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 				if (mode == 1) {
 					// remove timed-out offers
-					for (Iterator<TCPPacket> it = pendingOffers.keySet().iterator(); it.hasNext();) {
-						TCPPacket offer = (TCPPacket) it.next();
-						if (System.currentTimeMillis() > pendingOffers.get(offer)) {
-							it.remove();
-							unackedPackets.remove(offer);
-							System.out.print("offer timed out; ");
-							System.out.println("# of pending offers now: " + pendingOffers.size());
+					synchronized (pendingOffers) {
+						for (Iterator<TCPPacket> it = pendingOffers.keySet().iterator(); it.hasNext();) {
+							TCPPacket offer = (TCPPacket) it.next();
+							if (System.currentTimeMillis() > pendingOffers.get(offer)) {
+								it.remove();
+								unackedPackets.remove(offer);
+								System.out.print("offer timed out; ");
+								System.out.println("# of pending offers now: " + pendingOffers.size());
+							}
 						}
 					}
 				}
 
 				// send un-acked packets
-				for (Iterator<TCPPacket> it = unackedPackets.keySet().iterator(); it.hasNext();) {
-					TCPPacket packet = (TCPPacket) it.next();
-					long timeToSend = unackedPackets.get(packet);
-					if (System.currentTimeMillis() >= timeToSend) {
-						System.out.println("sending a packet type=" + packet.getType());
-						unackedPackets.put(packet, timeToSend + RESEND_TIME);
-						socket.sendData(packet);
+				synchronized (unackedPackets) {
+					for (Iterator<TCPPacket> it = unackedPackets.keySet().iterator(); it.hasNext();) {
+						TCPPacket packet = (TCPPacket) it.next();
+						long timeToSend = unackedPackets.get(packet);
+						if (System.currentTimeMillis() >= timeToSend) {
+							System.out.println("sending a packet type=" + packet.getType());
+							unackedPackets.put(packet, timeToSend + RESEND_TIME);
+							socket.sendData(packet);
+						}
 					}
 				}
 
-				if (state == 1 && mode == 1) {
-					// fill up queue
-					while (lastSeqSent < lastAckReceived + sendWindowSize) {
-						System.out.println(" STATE is " + state);
-						lastSeqSent++;
-					}
-				}
+				// System.out.println("unacked packets.size() == " +
+				// unackedPackets.size());
 
-				Thread.sleep(10);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	int lastSeqSent = 0;
-	int lastAckReceived = -1;
-	int sendWindowSize = 5;
+	// received packets, not yet written
+	private Map<Integer, byte[]> receivedPackets;
+	// nr of packets received
+	private int nrOfReceivedPackets = 0;
+	// nr of packets to be received;
+	private int currentDownloadNrOfPackets;
+
+	// running order (receive side)
+	private String currentDownloadName;
+	private int lastSeqReceived;
+	private long currentDownloadSize;
 
 	@Override
 	public void onReceive(Packet receivedPacket) {
@@ -166,14 +178,14 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 					if (p.getOfferNr() == tcpPacket.getOfferNr()) {
 						it.remove();
 					}
+					System.out.println("onReceive() remove(offer) size was: " + previousSize + " now size is :"
+							+ pendingOffers.size());
 				}
-				System.out.println("onReceive() remove(offer) size was: " + previousSize + " now size is :"
-						+ pendingOffers.size());
 				if (previousSize > pendingOffers.size()) {
 					state = 1;
 					try {
 						beginSendingFile(dataStreamIn.readUTF(), dataStreamIn.readInt(),
-								receivedPacket.getSourceAddress());
+								receivedPacket.getSourceAddress(), tcpPacket.getOfferNr());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -181,10 +193,55 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 			}
 		}
 
+		// receive file data
+		if (tcpPacket.getType() == Packet.TYPE_FILE && mode == 0) {
+			System.out.println("received filedata yay! (SEQNR = " + receivedSeqNr);
+
+			try {
+				if (receivedPackets.get(receivedSeqNr) == null) {
+					// accept packet
+					byte[] receivedBuffer = new byte[dataStreamIn.available()];
+					dataStreamIn.read(receivedBuffer);
+
+					receivedPackets.put(receivedSeqNr, receivedBuffer);
+					nrOfReceivedPackets++;
+				} else {
+					System.out.println("Received Duplicate file data, ignoring.");
+				}
+				System.out.println(currentDownloadNrOfPackets + " ---- " + nrOfReceivedPackets);
+				if (currentDownloadNrOfPackets == nrOfReceivedPackets) {
+					System.out.println("Done downloading!");
+					// done downloading, now sort and write to disk
+
+					Map<Integer, byte[]> sortedReceivedPackets = new TreeMap<Integer, byte[]>(receivedPackets);
+
+					File file = new File(RECEIVED_PREFIX + currentDownloadName);
+					FileOutputStream fos = new FileOutputStream(file, false);
+
+					BufferedOutputStream bufStream = new BufferedOutputStream(fos);
+
+					for (Iterator<byte[]> it = sortedReceivedPackets.values().iterator(); it.hasNext();) {
+						byte[] bytes = (byte[]) it.next();
+						bufStream.write(bytes);
+					}
+					System.out.println("Writing to file");
+					bufStream.flush();
+				}
+
+			} catch (IOException e) {
+				System.out.println("error");
+				e.printStackTrace();
+			}
+
+		}
+
+		// write data to disk
+		// String filename = currentDownloadName;
+
 		// return an ACK
 		if ((tcpPacket.getType() == Packet.TYPE_FILE_OFFER && mode == 0)
 				|| tcpPacket.getType() == Packet.TYPE_FILE_ACCEPT && mode == 1
-				|| tcpPacket.getType() == Packet.TYPE_FILE) {
+				|| tcpPacket.getType() == Packet.TYPE_FILE && mode == 0) {
 			try {
 				ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
 				DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
@@ -206,14 +263,13 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 		// receive an ACK
 		if (tcpPacket.getType() == Packet.TYPE_ACK) {
-			for (Iterator<TCPPacket> it = unackedPackets.keySet().iterator(); it.hasNext();) {
-				TCPPacket unacked = (TCPPacket) it.next();
-				System.out.println("WAITING FOR AN ACK OF :" + unacked.getSeqNr());
-			}
-			Long remove = unackedPackets.remove(tcpPacket);
-			System.out.println("receiving ack #" + receivedSeqNr + " Could remove it? = " + remove);
-			if (remove != null) {
-				lastAckReceived++;
+			synchronized (unackedPackets) {
+				for (Iterator<TCPPacket> it = unackedPackets.keySet().iterator(); it.hasNext();) {
+					TCPPacket unacked = (TCPPacket) it.next();
+					System.out.println("WAITING FOR AN ACK OF :" + unacked.getSeqNr());
+				}
+				Long remove = unackedPackets.remove(tcpPacket);
+				System.out.println("receiving ack #" + receivedSeqNr + " Could remove it? = " + remove);
 			}
 		}
 
@@ -228,20 +284,29 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 			boolean accept = true;
 			if (accept) {
 				try {
+					currentDownloadName = dataStreamIn.readUTF();
+					currentDownloadSize = dataStreamIn.readLong();
+					currentDownloadNrOfPackets = dataStreamIn.readInt();
+					lastSeqReceived = receivedSeqNr;
+
+					receivedPackets = new HashMap<Integer, byte[]>();
+
 					ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
 					DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
 
 					dataStreamOut.writeInt(seqNr++);
 					dataStreamOut.writeInt(offerNr);
-					dataStreamOut.writeUTF(dataStreamIn.readUTF()); // filename
-					int preferredWindowSize = 128;
+					dataStreamOut.writeUTF(currentDownloadName); // filename
+					int preferredWindowSize = 5;
 					dataStreamOut.writeInt(preferredWindowSize);
 
-					System.out.println("Sending back ACCEPT for offer.");
-					Packet acceptPacket = new Packet(socket.getAddress(), tcpPacket.getSourceAddress(), (byte) 8,
-							Packet.TYPE_FILE_ACCEPT, random.nextInt(), byteStreamOut.toByteArray());
-					TCPPacket tcpAcceptPacket = new TCPPacket(acceptPacket, seqNr, offerNr);
-					unackedPackets.put(tcpAcceptPacket, System.currentTimeMillis());
+					synchronized (unackedPackets) {
+						System.out.println("Sending back ACCEPT for offer.");
+						Packet acceptPacket = new Packet(socket.getAddress(), tcpPacket.getSourceAddress(), (byte) 8,
+								Packet.TYPE_FILE_ACCEPT, random.nextInt(), byteStreamOut.toByteArray());
+						TCPPacket tcpAcceptPacket = new TCPPacket(acceptPacket, seqNr, offerNr);
+						unackedPackets.put(tcpAcceptPacket, System.currentTimeMillis());
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -249,61 +314,12 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 				System.out.println("REJECTED PACKET");
 			}
 		}
-		//
-		// for (AdhocListener listener : listeners) {
-		// listener.onReceive(packet);
-		// }
-		// ByteArrayInputStream byteStream = new
-		// ByteArrayInputStream(packet.getData());
-		// DataInputStream dataStream = new DataInputStream(byteStream);
-		//
-		// try {
-		// int id = dataStream.readInt();
-		//
-		// Packet ackedPacket = null;
-		// for (Packet p : unackedPackets) {
-		// if (p.getId() == id) {
-		// ackedPacket = p;
-		// break;
-		// }
-		// }
-		//
-		// unackedPackets.remove(ackedPacket);
-		// resendTimes.remove(ackedPacket);
-		// } catch (IOException e) {
-		// e.printStackTrace();
-		// }
 
-		// String filename = dataStream.readUTF();
-		// int orderNr = dataStream.readInt();
-		// String filecontents = dataStream.readUTF();
-		//
-		// File file = new File(RECEIVED_PREFIX + filename);
-		// FileOutputStream fos;
-		//
-		// if (orderNr == 0) {
-		// fos = new FileOutputStream(file, false);
-		// } else {
-		// fos = new FileOutputStream(file, true);
-		// }
-		// BufferedOutputStream bufStream = new BufferedOutputStream(fos);
-		//
-		// bufStream.write(filecontents.getBytes("UTF-8"));
-		// System.out.println("Writing to file");
-		// bufStream.flush();
-
-		// } catch (EOFException e) {
-		// System.out.println("File too large :(");
-		// e.printStackTrace();
-		// } catch (IOException e) {
-		// System.out.println("Couldnt write file ");
-		// e.printStackTrace();
-		// }
 	}
 
 	private static final int PACKET_SIZE = 128; // bytes
 
-	private void beginSendingFile(String filename, int windowSize, byte destination) {
+	private void beginSendingFile(String filename, final int windowSize, byte destination, int offerNr) {
 		// filename in root (relative)
 		BufferedInputStream bufStream = null;
 		try {
@@ -314,33 +330,46 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 			long sizeBytes = file.length();
 
-			byte[] toSend = new byte[PACKET_SIZE];
-			TCPPacket[] packets = new TCPPacket[(int) Math.ceil((float) sizeBytes / (float) PACKET_SIZE)]; // round
-																											// up???
+			// Load file seqmented into memory
+			final TCPPacket[] packets = new TCPPacket[(int) Math.ceil((float) sizeBytes / (float) PACKET_SIZE)]; // round
 			int i = 0;
 			while (bufStream.available() > 0) {
+				byte[] toSend = new byte[Math.min(bufStream.available(), PACKET_SIZE)];
 				bufStream.read(toSend);
-				// packets[i] = new TCPPacket(new Packet(socket.getAddress(),
-				// destination, (byte)8, Packet.TYPE_FILE, random.nextInt(),
-				// data),
-				// destination, offerNr)*
+
+				ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+				DataOutputStream dataStream = new DataOutputStream(byteStream);
+				dataStream.writeInt(++seqNr);
+				dataStream.writeInt(offerNr);
+				dataStream.write(toSend);
+
+				packets[i++] = new TCPPacket(new Packet(socket.getAddress(), destination, (byte) 8, Packet.TYPE_FILE,
+						random.nextInt(), byteStream.toByteArray()), seqNr, offerNr);
 			}
-
-			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-			DataOutputStream dataStream = new DataOutputStream(byteStream);
-			dataStream.writeUTF(file.getName());
-			dataStream.writeInt(++seqNr);
-			dataStream.writeUTF(new String(toSend, "UTF-8"));
-
-			// socket.send(destination, Packet.TYPE_FILE,
-			// byteStream.toByteArray());
-			try {
-				Thread.sleep(200);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
 			bufStream.close();
+			System.out.println("Read " + filename + " into memory success? "
+					+ (packets.length == Math.ceil((float) sizeBytes / (float) PACKET_SIZE)));
+
+			// queueing packets
+			new Thread(new Runnable() {
+				int nextPacket = 0;// index
+
+				@Override
+				public void run() {
+					while (nextPacket < packets.length) {
+						synchronized (unackedPackets) {
+
+							if (unackedPackets.size() < windowSize) {
+								System.out.println("QUEUEING PACKET INDEX = " + nextPacket + " SEQNR = "
+										+ packets[nextPacket].getSeqNr());
+
+								unackedPackets.put(packets[nextPacket++], System.currentTimeMillis());
+							}
+						}
+					}
+				}
+			}).start();
+
 		} catch (FileNotFoundException e) {
 			System.out.println("File " + filename + " not found in project root");
 		} catch (IOException c) {

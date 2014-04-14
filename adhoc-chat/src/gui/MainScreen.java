@@ -3,6 +3,7 @@ package gui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.Insets;
 import java.util.HashMap;
 
@@ -14,6 +15,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 
 import net.miginfocom.swing.MigLayout;
 import util.GradientPanel;
@@ -222,12 +224,30 @@ public class MainScreen {
 	 * Adds a message to a chatscreen
 	 */
 	public Message addMessage(String message, String username, String color1, String color2, boolean incoming,
-			String group, String timeStamp) {
-		// Icon icon = new ImageIcon("images/icon_smile.gif");
-		Message newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
-				+ "</u></b></font><br /><font size=3>" + formatMessage(message)
-				+ "</font><br /><font size=2><font color=white>" + timeStamp + "</font></font></font></body></html>",
-				Color.decode(color1), Color.decode(color2));
+			String group, String timeStamp, boolean file, boolean img) {
+
+		Message newMessage;
+
+		if (img) {
+			Icon newIcon = new ImageIcon("received/" + message);
+			Image image = ((ImageIcon) newIcon).getImage();
+			Image newimg = image.getScaledInstance(newIcon.getIconWidth() / newIcon.getIconWidth() * 265,
+					(newIcon.getIconHeight() * 265) / newIcon.getIconWidth(), java.awt.Image.SCALE_SMOOTH);
+			newIcon = new ImageIcon(newimg);
+
+			newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
+					+ "</u></b></font> | <font size=3>" + "</font<font size=2><font color=white>" + timeStamp
+					+ "</font></font></font></body></html>", Color.decode(color1), Color.decode(color2));
+			newMessage.setVerticalTextPosition(SwingConstants.TOP);
+			newMessage.setHorizontalTextPosition(SwingConstants.CENTER);
+			newMessage.setIcon(newIcon);
+		} else {
+
+			newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
+					+ "</u></b></font><br /><font size=3>" + formatMessage(message)
+					+ "</font><br /><font size=2><font color=white>" + timeStamp
+					+ "</font></font></font></body></html>", Color.decode(color1), Color.decode(color2));
+		}
 		JPanel chatScreen;
 		// newMessage.setIcon(icon);
 		chatScreen = chatScreens.get(group);

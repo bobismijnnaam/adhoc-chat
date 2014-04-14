@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 
 import util.GradientList;
+import util.Util;
 import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
@@ -195,8 +196,8 @@ public class GuiHandler implements ActionListener, AdhocListener {
 			Calendar cal = Calendar.getInstance();
 			cal.setTimeInMillis(timestamp);
 			String date = df.format(cal.getTime());
-			Message newMessage = mainScreen.addMessage(message, username, color.color1, color.color2, incoming, group,
-					date);
+			Message newMessage = mainScreen.addMessage(Util.makeHtmlSafe(message), username, color.color1,
+					color.color2, incoming, group, date);
 			frame.pack();
 			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
 			// System.out.println(newMessage.getBounds());

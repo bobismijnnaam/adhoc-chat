@@ -3,6 +3,7 @@ package gui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.Insets;
 import java.util.HashMap;
 
@@ -14,6 +15,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 
 import net.miginfocom.swing.MigLayout;
 import util.GradientPanel;
@@ -194,9 +196,10 @@ public class MainScreen {
 	 * @param field
 	 *            - the textfield assosiated with the handler
 	 */
-	private void addController(GuiHandler handler, JButton send, JTextField field) {
+	private void addController(GuiHandler handler, JButton send, JTextField field, JButton fileUpload) {
 		send.addActionListener(handler);
 		field.addActionListener(handler);
+		fileUpload.addActionListener(handler);
 	} // addController()
 
 	/**
@@ -221,12 +224,30 @@ public class MainScreen {
 	 * Adds a message to a chatscreen
 	 */
 	public Message addMessage(String message, String username, String color1, String color2, boolean incoming,
-			String group, String timeStamp) {
-		// Icon icon = new ImageIcon("images/icon_smile.gif");
-		Message newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
-				+ "</u></b></font><br /><font size=3>" + formatMessage(message)
-				+ "</font><br /><font size=2><font color=white>" + timeStamp + "</font></font></font></body></html>",
-				Color.decode(color1), Color.decode(color2));
+			String group, String timeStamp, boolean file, boolean img) {
+
+		Message newMessage;
+
+		if (img) {
+			Icon newIcon = new ImageIcon("received/" + message);
+			Image image = ((ImageIcon) newIcon).getImage();
+			Image newimg = image.getScaledInstance(newIcon.getIconWidth() / newIcon.getIconWidth() * 265,
+					(newIcon.getIconHeight() * 265) / newIcon.getIconWidth(), java.awt.Image.SCALE_SMOOTH);
+			newIcon = new ImageIcon(newimg);
+
+			newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
+					+ "</u></b></font> | <font size=3>" + "</font<font size=2><font color=white>" + timeStamp
+					+ "</font></font></font></body></html>", Color.decode(color1), Color.decode(color2));
+			newMessage.setVerticalTextPosition(SwingConstants.TOP);
+			newMessage.setHorizontalTextPosition(SwingConstants.CENTER);
+			newMessage.setIcon(newIcon);
+		} else {
+
+			newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
+					+ "</u></b></font><br /><font size=3>" + formatMessage(message)
+					+ "</font><br /><font size=2><font color=white>" + timeStamp
+					+ "</font></font></font></body></html>", Color.decode(color1), Color.decode(color2));
+		}
 		JPanel chatScreen;
 		// newMessage.setIcon(icon);
 		chatScreen = chatScreens.get(group);
@@ -281,9 +302,18 @@ public class MainScreen {
 		messageBox.setName("enter" + name);
 		messageBox.setBackground(Color.decode("#e2e2e2"));
 		messageBox.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-		sendButton.add(messageBox, "split 2, w 400px, h 45px");
 		Icon send = new ImageIcon("images/send.png");
+		Icon file = new ImageIcon("images/file.png");
+		JButton fileUpload = new JButton(file);
 		JButton actualSendButton = new JButton(send);
+		fileUpload.setName("upload" + name);
+		fileUpload.setMargin(new Insets(0, 0, 0, 0));
+		fileUpload.setOpaque(false);
+		fileUpload.setContentAreaFilled(false);
+		fileUpload.setBorderPainted(false);
+		fileUpload.setBorder(null);
+		sendButton.add(fileUpload, "split 3, w 50px, h 50px");
+		sendButton.add(messageBox, "w 350px, h 45px");
 		actualSendButton.setName("send" + name);
 		actualSendButton.setMargin(new Insets(0, 0, 0, 0));
 		actualSendButton.setOpaque(false);
@@ -292,7 +322,7 @@ public class MainScreen {
 		actualSendButton.setBorder(null);
 		realTextFields.put(name, messageBox);
 		sendButton.add(actualSendButton, "w 100px, h 50px");
-		addController(handler, actualSendButton, messageBox);
+		addController(handler, actualSendButton, messageBox, fileUpload);
 		return sendButton;
 	}
 

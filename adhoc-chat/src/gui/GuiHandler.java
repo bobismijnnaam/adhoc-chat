@@ -16,6 +16,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
@@ -25,11 +26,13 @@ import util.Util;
 import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
+import adhoc.FileTransferSocket;
+import adhoc.FileTransferSocket.FileSocketListener;
 import adhoc.Packet;
 import adhoc.ReliableSocket;
 import crypto.Crypto;
 
-public class GuiHandler implements ActionListener, AdhocListener {
+public class GuiHandler implements ActionListener, AdhocListener, FileSocketListener {
 	// the loginGUI
 	private Login loginGUI;
 	private JFrame frame;
@@ -49,6 +52,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 
 	// data format
 	private DateFormat df = new SimpleDateFormat("dd-MM-yy 'at' HH:mm:ss");
+	private FileTransferSocket fileTransferSocket;
 
 	public GuiHandler() {
 		// JFrame
@@ -91,15 +95,15 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	public void actionPerformed(ActionEvent e) {
 		// create color and timestamp
 		GradientList list = new GradientList();
-		GradientList.Gradient color = list.sendColor();
-		long timestamp = System.currentTimeMillis();
+		final GradientList.Gradient color = list.sendColor();
+		final long timestamp = System.currentTimeMillis();
 
 		// if in main screen and enter is pressed in an arbritrary text field
 		if (main && ((Component) e.getSource()).getName().contains("enter")) {
 			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
 			String group = messageParts[1];
 			// process the message
-			processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
+			processMessage(group, false, mainScreen.getUsername(), color, timestamp, "", false, false);
 		} else {
 			// check if it's an attempt to login
 			if (((Component) e.getSource()).getName().equals("loginkey")) {
@@ -114,12 +118,50 @@ public class GuiHandler implements ActionListener, AdhocListener {
 					String[] messageParts = ((Component) e.getSource()).getName().split("send");
 					String group = messageParts[1];
 					// process the message
-					processMessage(group, false, mainScreen.getUsername(), color, timestamp, "");
+					processMessage(group, false, mainScreen.getUsername(), color, timestamp, "", false, false);
+				} else if (source.getName().contains("upload")) {
+					String[] messageParts = ((Component) e.getSource()).getName().split("upload");
+					final String group = messageParts[1];
+					final JFileChooser fc = new JFileChooser();
+					fc.addActionListener(new ActionListener() {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							System.out.println(fc.getSelectedFile());
+							if (!(fc.getSelectedFile() == null)) {
+
+								String filename = fc.getSelectedFile().getName();
+								boolean isImage = isImage(filename);
+								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
+										true, isImage);
+							}
+						}
+					});
+					fc.showOpenDialog(frame);
 				} else {
 					mainScreen.changeChat(source.getName());
 				}
 			}
 		}
+	}
+
+	/**
+	 * Check if the image is usable for ICON messgae
+	 * 
+	 * @param name
+	 *            , name + extension
+	 * @return if the image is usable for ICON message
+	 */
+	public boolean isImage(String name) {
+		String[] parts = name.split("\\.");
+		String ext = parts[1];
+		String[] imgExt = { "png", "jpg", "jpeg", "gif" };
+		for (int x = 0; x < imgExt.length; x++) {
+			if (imgExt[x].equals(ext)) {
+				System.out.println("image");
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -155,6 +197,8 @@ public class GuiHandler implements ActionListener, AdhocListener {
 			try {
 				socket = new ReliableSocket(username, Crypto.INSTANCE.getMyKey());
 				socket.addListener(this);
+				fileTransferSocket = new FileTransferSocket(socket.getAdhocSocket());
+				fileTransferSocket.addListener(this);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -177,11 +221,12 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	 *            - The assosiated color with the username/adress
 	 */
 	private void processMessage(String group, boolean incoming, String username, GradientList.Gradient color,
-			long timestamp, String message) {
+			long timestamp, String message, boolean file, boolean img) {
 		// retrieve message from textfield in associated group if it's an
 		// outgoing message
 		if (!incoming)
-			message = mainScreen.getMessage(group);
+			if (!file)
+				message = mainScreen.getMessage(group);
 		if (!message.equals("") && message.trim().length() > 0) {
 			if (!incoming) {
 				try {
@@ -197,7 +242,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 			cal.setTimeInMillis(timestamp);
 			String date = df.format(cal.getTime());
 			Message newMessage = mainScreen.addMessage(Util.makeHtmlSafe(message), username, color.color1,
-					color.color2, incoming, group, date);
+					color.color2, incoming, group, date, file, img);
 			frame.pack();
 			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
 			// System.out.println(newMessage.getBounds());
@@ -288,7 +333,7 @@ public class GuiHandler implements ActionListener, AdhocListener {
 
 					mainScreen.addNotification(dest);
 
-					processMessage(dest, true, username, color, timestamp, message);
+					processMessage(dest, true, username, color, timestamp, message, false, false);
 					mainScreen.scrollDown(dest);
 				}
 
@@ -331,5 +376,15 @@ public class GuiHandler implements ActionListener, AdhocListener {
 	public static void main(String[] args) {
 		// guihandler
 		new GuiHandler();
+	}
+
+	@Override
+	public void onReceiveFileOffer(String filename, int offerNr, long sizeKb, byte srcAddress) {
+
+	}
+
+	@Override
+	public void onFileTransferComplete(String filename) {
+
 	}
 }

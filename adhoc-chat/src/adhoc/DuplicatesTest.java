@@ -11,7 +11,7 @@ import crypto.Crypto;
 public class DuplicatesTest {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		boolean sender = true;
-		final byte dest = 1;
+		final byte dest = 3;
 
 		if (sender) {
 			ReliableSocket socket = new ReliableSocket("sender", Crypto.INSTANCE.getMyKey());

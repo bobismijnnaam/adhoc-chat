@@ -329,7 +329,7 @@ public class Crypto {
 	private void startSession(byte client, byte[] key, byte[] iv, int cipherMode) {
 		if (symmetricCiphers.containsKey(client)) {
 			System.out.println("[Crypto] Session with client " + client
-					+ "detected! Overwriting old session information");
+					+ " detected! Overwriting old session information");
 		}
 
 		try {
@@ -358,6 +358,8 @@ public class Crypto {
 			System.out.println("[ERROR] Invalid algorithm parameters");
 			e.printStackTrace();
 		}
+
+		System.out.println("[Crypto] Session started with client " + client);
 	}
 
 	/**
@@ -431,6 +433,8 @@ public class Crypto {
 			symmetricCiphers.remove(client);
 			symmetricKeys.remove(client);
 			symmetricKeys.remove(client);
+
+			System.out.println("[Crypto] Session with client " + client + " ended");
 		} else {
 			System.out.println("[Crypto] No known session with client " + client);
 		}
@@ -525,9 +529,11 @@ public class Crypto {
 		String decryptedString = new String(decryptedMsg);
 
 		System.out.println("Receiver's " + (decryptedString.equals(msg) ? "correct" : "incorrect") + " Result: \""
-				+ decryptedString + "\"\n");
+				+ decryptedString + "\"");
 
 		cryptos[0].endSession((byte) 1);
 		cryptos[1].endSession((byte) 0);
+
+		System.out.println();
 	}
 }

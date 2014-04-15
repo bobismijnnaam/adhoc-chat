@@ -10,8 +10,8 @@ import crypto.Crypto;
 public class FileTransferTest implements FileTransferListener {
 
 	public static void main(String[] args) {
-		new FileTransferTest().sender();
-		// new FileTransferTest().receiver();
+		// new FileTransferTest().sender();
+		new FileTransferTest().receiver();
 	}
 
 	FileTransferSocket socket;

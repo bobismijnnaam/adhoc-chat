@@ -313,7 +313,8 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 		addr.put(connection.name, connection.address);
 		GradientList gradients = new GradientList();
 		int index = colors.size();
-		index = index % gradients.getSize();
+		// index = index % gradients.getSize();
+		index = Math.abs(connection.hashCode() % gradients.getSize());
 
 		// picks a color from the gradientcolor list and associates it with the
 		// username

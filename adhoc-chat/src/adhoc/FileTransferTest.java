@@ -1,6 +1,7 @@
 package adhoc;
 
 import java.io.IOException;
+import java.util.Random;
 
 import adhoc.FileTransferSocket.Download;
 import adhoc.FileTransferSocket.FileTransferListener;
@@ -10,14 +11,15 @@ public class FileTransferTest implements FileTransferListener {
 
 	public static void main(String[] args) {
 		new FileTransferTest().sender();
-		new FileTransferTest().receiver();
+		// new FileTransferTest().receiver();
 	}
 
 	FileTransferSocket socket;
 
 	public FileTransferTest() {
 		try {
-			socket = new FileTransferSocket(new AdhocSocket("sdfadam", Crypto.INSTANCE.getMyKey()));
+			socket = new FileTransferSocket(new AdhocSocket("sdfadam" + new Random().nextInt(),
+					Crypto.INSTANCE.getMyKey()));
 			socket.addListener(this);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -26,7 +28,7 @@ public class FileTransferTest implements FileTransferListener {
 
 	public void sender() {
 		try {
-			socket.makeOffer((byte) 2, "SPACE.jpg");
+			socket.makeOffer((byte) 2, "Firefox_wallpaper.png");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

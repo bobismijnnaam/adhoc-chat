@@ -215,7 +215,7 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 	 */
 	private void tryLogin(String username) {
 		// check username (longer than 3 characters only numbers and characters)
-		if (loginGUI.getUsername().matches("\\w{3,10}+")) {
+		if (loginGUI.getUsername().matches("^\\w{3,10}+$")) {
 
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);

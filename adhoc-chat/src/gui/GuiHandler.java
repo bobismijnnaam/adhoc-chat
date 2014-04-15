@@ -10,7 +10,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -19,6 +23,7 @@ import java.util.HashMap;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 
@@ -134,10 +139,18 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 							if (!(fc.getSelectedFile() == null)) {
 
 								// store file local
-								fc.getSelectedFile().renameTo(new File("/received"));
-								System.out.println("stored file");
 								String filename = fc.getSelectedFile().getName();
 								boolean isImage = isImage(filename);
+
+								try {
+									copy(fc.getSelectedFile(), new File(FileTransferSocket.FOLDER_RECEIVE + "/"
+											+ filename));
+								} catch (IOException e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+								}
+								System.out.println("stored file");
+
 								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
 										true, isImage);
 
@@ -401,20 +414,44 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 
 	@Override
 	public void onReceiveDownloadOffer(Download downloadOffer) {
-		// fileTransferSocket.respondOffer(downloadOffer, true);
+		int n = JOptionPane.showConfirmDialog(frame, "Allow " + users.get(downloadOffer.getAddress())
+				+ " to send a file?", "File offer", JOptionPane.YES_NO_OPTION);
+		System.out.println(n);
+		if (n == 0) {
+			fileTransferSocket.respondOffer(downloadOffer, true);
+		} else {
+			fileTransferSocket.respondOffer(downloadOffer, false);
+		}
 	}
 
 	@Override
 	public void onFileTransferComplete(Download download) {
 		System.out.println(download.getTransferSpeed());
 		File file = new File(FileTransferSocket.FOLDER_RECEIVE + "/" + download.getFilename());
-		// processMessage(, incoming, username, color, timestamp, message, file,
-		// img)
+		boolean isImage = isImage(download.getFilename());
+		final long timestamp = System.currentTimeMillis();
+		processMessage(users.get(download.getAddress()), true, users.get(download.getAddress()),
+				colors.get(download.getAddress()), timestamp, download.getFilename(), true, isImage);
 	}
 
 	@Override
 	public void onOfferRejected(Download download) {
-		System.out.println("boooooo");
+		JOptionPane.showMessageDialog(frame, "Your offer to send " + download.getFilename() + " was declined.",
+				"Offer declined", JOptionPane.WARNING_MESSAGE);
+	}
+
+	public void copy(File src, File dst) throws IOException {
+		InputStream in = new FileInputStream(src);
+		OutputStream out = new FileOutputStream(dst);
+
+		// Transfer bytes from in to out
+		byte[] buf = new byte[1024];
+		int len;
+		while ((len = in.read(buf)) > 0) {
+			out.write(buf, 0, len);
+		}
+		in.close();
+		out.close();
 	}
 
 }

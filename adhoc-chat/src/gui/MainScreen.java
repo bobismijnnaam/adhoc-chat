@@ -320,8 +320,12 @@ public class MainScreen {
 		fileUpload.setContentAreaFilled(false);
 		fileUpload.setBorderPainted(false);
 		fileUpload.setBorder(null);
-		sendButton.add(fileUpload, "split 3, w 50px, h 50px");
-		sendButton.add(messageBox, "w 350px, h 45px");
+		if (name == "GroupChat") {
+			sendButton.add(messageBox, "split 2, w 400px, h 45px");
+		} else {
+			sendButton.add(fileUpload, "split 3, w 50px, h 50px");
+			sendButton.add(messageBox, "w 350px, h 45px");
+		}
 		actualSendButton.setName("send" + name);
 		actualSendButton.setMargin(new Insets(0, 0, 0, 0));
 		actualSendButton.setOpaque(false);

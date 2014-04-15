@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -128,6 +129,9 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 							System.out.println(fc.getSelectedFile());
 							if (!(fc.getSelectedFile() == null)) {
 
+								// store file local
+								fc.getSelectedFile().renameTo(new File("/received"));
+								System.out.println("stored file");
 								String filename = fc.getSelectedFile().getName();
 								boolean isImage = isImage(filename);
 								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
@@ -152,6 +156,9 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 	 */
 	public boolean isImage(String name) {
 		String[] parts = name.split("\\.");
+		if (parts.length != 2) {
+			return false;
+		}
 		String ext = parts[1];
 		String[] imgExt = { "png", "jpg", "jpeg", "gif" };
 		for (int x = 0; x < imgExt.length; x++) {
@@ -177,8 +184,10 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);
 			frame.remove(panel);
-			frame.setSize(0, 0);
-			frame.setSize(800, 700);
+			// frame.setSize(0, 0);
+			// frame.setSize(800, 700);
+			frame.revalidate();
+			frame.repaint();
 			main = true;
 
 			// create the groupchat panel
@@ -223,14 +232,16 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 			long timestamp, String message, boolean file, boolean img) {
 		// retrieve message from textfield in associated group if it's an
 		// outgoing message
-		if (!incoming)
+		if (!incoming) {
 			if (!file)
 				message = mainScreen.getMessage(group);
+		}
 		if (!message.equals("") && message.trim().length() > 0) {
 			if (!incoming) {
 				try {
 					// send message to group (or individual)
-					sendMessage(message, group);
+					if (!file)
+						sendMessage(message, group);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -244,9 +255,9 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 					date, file, img);
 			frame.pack();
 			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
-			// System.out.println(newMessage.getBounds());
+			System.out.println("new max y: " + (newMessage.getBounds().y + newMessage.getBounds().height + 10));
 			frame.pack();
-			mainScreen.scrollDown(group);
+			mainScreen.scrollDown(group, (newMessage.getBounds().y + newMessage.getBounds().height + 10));
 		}
 	}
 
@@ -331,11 +342,8 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 					System.out.println(message + username + dest);
 
 					mainScreen.addNotification(dest);
-
 					processMessage(dest, true, username, color, timestamp, message, false, false);
-					mainScreen.scrollDown(dest);
 				}
-
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

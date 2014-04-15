@@ -280,17 +280,16 @@ public class MainScreen {
 			chatScreen.setPreferredSize(chatScreen.getPreferredSize());
 			chatScreen.revalidate();
 			chatScreen.repaint();
-			// mainScreen.revalidate();
-			// mainScreen.repaint();
 		}
 	}
 
-	public void scrollDown(String name) {
+	public void scrollDown(String name, int newMax) {
 		JScrollPane scrollpane = scrollPanes.get(name);
-		JScrollBar vertical = scrollpane.getVerticalScrollBar();
-		vertical.setValue(vertical.getMaximum());
 		scrollpane.revalidate();
 		scrollpane.repaint();
+		JScrollBar vertical = scrollpane.getVerticalScrollBar();
+		System.out.println(vertical.getMaximum());
+		vertical.setValue(newMax);
 	}
 
 	/**

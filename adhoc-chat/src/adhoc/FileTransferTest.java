@@ -10,8 +10,8 @@ import crypto.Crypto;
 public class FileTransferTest implements FileTransferListener {
 
 	public static void main(String[] args) {
-		new FileTransferTest().sender();
-		// new FileTransferTest().receiver();
+		// new FileTransferTest().sender();
+		new FileTransferTest().receiver();
 	}
 
 	FileTransferSocket socket;
@@ -28,7 +28,7 @@ public class FileTransferTest implements FileTransferListener {
 
 	public void sender() {
 		try {
-			socket.makeOffer((byte) 2, "Firefox_wallpaper.png");
+			socket.makeOffer((byte) 4, "Firefox_wallpaper.png");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -40,6 +40,7 @@ public class FileTransferTest implements FileTransferListener {
 
 	@Override
 	public void onReceiveDownloadOffer(Download downloadOffer) {
+		System.out.println("RECEIVED OFFER");
 		socket.respondOffer(downloadOffer, true);
 	}
 

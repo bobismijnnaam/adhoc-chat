@@ -27,8 +27,8 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 	private static final long PACKET_TIMEOUT = 500;
 	private static final long OFFER_TIMEOUT = 10000;
-	private static final int PACKET_SIZE = 768; // bytes
-	private static final int PREF_WINDOWSIZE = 32; // set by receiver
+	private static final int PACKET_SIZE = 1024; // bytes
+	private static final int PREF_WINDOWSIZE = 1024; // set by receiver
 
 	private AdhocSocket socket;
 
@@ -161,6 +161,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		private long startTime;
 		private long sizeBytes;
 		private byte address; // destination if sending, source if downloading
+		private byte dstAddress;
 		private boolean hasStarted = false;
 
 		// receiving
@@ -203,6 +204,9 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		}
 
 		public long getTransferSpeed() { // Kbps
+			if (((System.currentTimeMillis() - startTime) / 1000) == 0) {
+				return Integer.MAX_VALUE; // infinity!!!
+			}
 			return (sizeBytes * 8 / 1000) / ((System.currentTimeMillis() - startTime) / 1000);
 		}
 

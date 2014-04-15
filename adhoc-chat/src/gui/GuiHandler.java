@@ -440,8 +440,9 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 		File file = new File(FileTransferSocket.FOLDER_RECEIVE + "/" + download.getFilename());
 		boolean isImage = isImage(download.getFilename());
 		final long timestamp = System.currentTimeMillis();
+		System.out.println("I received: " + download.getFilename() + " From: " + users.get(download.getAddress()));
 		processMessage(users.get(download.getAddress()), true, users.get(download.getAddress()),
-				colors.get(download.getAddress()), timestamp, download.getFilename(), true, isImage);
+				colors.get(users.get(download.getAddress())), timestamp, download.getFilename(), true, isImage);
 	}
 
 	@Override

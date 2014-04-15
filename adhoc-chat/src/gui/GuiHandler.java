@@ -34,6 +34,8 @@ import adhoc.Packet;
 import adhoc.ReliableSocket;
 import crypto.Crypto;
 
+//github.com/bobismijnnaam/adhoc-chat.git
+
 public class GuiHandler implements ActionListener, AdhocListener, FileTransferListener {
 	// the loginGUI
 	private Login loginGUI;
@@ -407,4 +409,5 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 	public void onOfferRejected(Download download) {
 		System.out.println("boooooo");
 	}
+
 }

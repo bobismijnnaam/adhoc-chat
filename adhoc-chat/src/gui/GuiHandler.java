@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -27,12 +28,15 @@ import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
 import adhoc.FileTransferSocket;
-import adhoc.FileTransferSocket.FileSocketListener;
+import adhoc.FileTransferSocket.Download;
+import adhoc.FileTransferSocket.FileTransferListener;
 import adhoc.Packet;
 import adhoc.ReliableSocket;
 import crypto.Crypto;
 
-public class GuiHandler implements ActionListener, AdhocListener, FileSocketListener {
+//github.com/bobismijnnaam/adhoc-chat.git
+
+public class GuiHandler implements ActionListener, AdhocListener, FileTransferListener {
 	// the loginGUI
 	private Login loginGUI;
 	private JFrame frame;
@@ -133,6 +137,16 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 								boolean isImage = isImage(filename);
 								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
 										true, isImage);
+
+								// // // // // // // // // // // // // // // //
+								// // / // // // // // // // // // // // // //
+								try {
+									fileTransferSocket.makeOffer((byte) 1, fc.getSelectedFile().getAbsolutePath());
+								} catch (Exception ex) {
+									System.out.println("nevermind!");
+									ex.printStackTrace();
+								}
+
 							}
 						}
 					});
@@ -380,12 +394,21 @@ public class GuiHandler implements ActionListener, AdhocListener, FileSocketList
 	}
 
 	@Override
-	public void onReceiveFileOffer(String filename, int offerNr, long sizeKb, byte srcAddress) {
-
+	public void onReceiveDownloadOffer(Download downloadOffer) {
+		// fileTransferSocket.respondOffer(downloadOffer, true);
 	}
 
 	@Override
-	public void onFileTransferComplete(String filename) {
-
+	public void onFileTransferComplete(Download download) {
+		System.out.println(download.getTransferSpeed());
+		File file = new File(FileTransferSocket.FOLDER_RECEIVE + "/" + download.getFilename());
+		// processMessage(, incoming, username, color, timestamp, message, file,
+		// img)
 	}
+
+	@Override
+	public void onOfferRejected(Download download) {
+		System.out.println("boooooo");
+	}
+
 }

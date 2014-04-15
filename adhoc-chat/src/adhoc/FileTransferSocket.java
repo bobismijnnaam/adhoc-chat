@@ -224,7 +224,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 			}
 
 			receivedPackets.put(receivedSeqNr, receivedBuffer);
-
+			System.out.println("received " + receivedSeqNr + " of " + getNumberOfPackets());
 			if (getNumberOfPackets() == receivedPackets.size()) {
 				try {
 					// done downloading, now sort and write to disk
@@ -409,8 +409,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 					dataStreamOut.writeInt(offerNr);
 				}
 
-				// System.out.println("sending back ACK for #" +
-				// tcpPacket.getSeqNr());
+				System.out.println("sending back ACK for #" + tcpPacket.getSeqNr());
 				Packet acket = new Packet(socket.getAddress(), tcpPacket.getSourceAddress(), (byte) 8,
 						Packet.TYPE_FILE_ACK, random.nextInt(), byteStreamOut.toByteArray());
 				socket.sendData(acket);

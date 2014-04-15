@@ -9,7 +9,7 @@ import crypto.Crypto;
 public class FileTransferTest implements FileTransferListener {
 
 	public static void main(String[] args) {
-		new FileTransferTest().sender();
+		// new FileTransferTest().sender();
 		new FileTransferTest().receiver();
 	}
 
@@ -17,7 +17,7 @@ public class FileTransferTest implements FileTransferListener {
 
 	public FileTransferTest() {
 		try {
-			socket = new FileTransferSocket(new AdhocSocket("sdfadam", Crypto.INSTANCE.getMyKey()));
+			socket = new FileTransferSocket(new AdhocSocket("sdfadameaeea", Crypto.INSTANCE.getMyKey()));
 			socket.addListener(this);
 		} catch (IOException e) {
 			e.printStackTrace();

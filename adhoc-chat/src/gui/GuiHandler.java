@@ -1,6 +1,7 @@
 package gui;
 
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -106,7 +107,6 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 		GradientList list = new GradientList();
 		final GradientList.Gradient color = list.sendColor();
 		final long timestamp = System.currentTimeMillis();
-
 		// if in main screen and enter is pressed in an arbritrary text field
 		if (main && ((Component) e.getSource()).getName().contains("enter")) {
 			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
@@ -167,6 +167,14 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 						}
 					});
 					fc.showOpenDialog(frame);
+				} else if (source.getName().contains("file")) {
+					String[] messageParts = ((Component) e.getSource()).getName().split("file");
+					try {
+						Desktop.getDesktop().open(new File(FileTransferSocket.FOLDER_RECEIVE + "/" + messageParts[1]));
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				} else {
 					mainScreen.changeChat(source.getName());
 				}
@@ -280,6 +288,7 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 			String date = df.format(cal.getTime());
 			Message newMessage = mainScreen.addMessage(Util.makeHtmlSafe(message), username, color.color1,
 					color.color2, incoming, group, date, file, img);
+			mainScreen.addFileOpener(newMessage, this);
 			frame.pack();
 			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
 			System.out.println("new max y: " + (newMessage.getBounds().y + newMessage.getBounds().height + 10));

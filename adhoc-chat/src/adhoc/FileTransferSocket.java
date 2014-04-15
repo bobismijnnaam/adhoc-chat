@@ -364,6 +364,21 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 			}
 		}
 
+		// 'offer rejected :( '
+		if (tcpPacket.getType() == Packet.TYPE_FILE_DECLINE && mode == 1) {
+			synchronized (downloads) {
+
+				Download download = downloads.get(tcpPacket.getOfferNr());
+				if (download != null) {
+					for (FileTransferListener l : listeners) {
+						l.onOfferRejected(download);
+					}
+				} else {
+					System.out.println("Download offer not found/timed out");
+				}
+			}
+		}
+
 		// receive file data
 		if (tcpPacket.getType() == Packet.TYPE_FILE && mode == 0) {
 
@@ -375,7 +390,8 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 				Download download = downloads.get(offerNr);
 				boolean finished = download.receiveData(receivedDownloadSeqNr, receivedBuffer);
 				if (finished) {
-					System.out.println("Finished Downloading file");
+					mode = 0;
+					System.out.println("Finished Downloading file @ " + download.getTransferSpeed() + "Kb/s");
 					for (FileTransferListener l : listeners) {
 						l.onFileTransferComplete(download);
 					}
@@ -411,6 +427,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 						int recDownloadSeqAckNr = dataStreamIn.readInt();
 						boolean finished = downloads.get(offerNr).receiveAck(recDownloadSeqAckNr);
 						if (finished) {
+							mode = 0;
 							System.out.println("Done uploading file!");
 						}
 					} catch (IOException e) {
@@ -509,7 +526,24 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 				e.printStackTrace();
 			}
 		} else {
-			System.out.println("REJECTED OFFER");
+			try {
+				System.out.println("REJECTED OFFER");
+				// return 'decline' message to sender
+				ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
+				DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
+
+				dataStreamOut.writeInt(seqNr++);
+				dataStreamOut.writeInt(d.offerNr);
+
+				synchronized (unackedPackets) {
+					Packet acceptPacket = new Packet(socket.getAddress(), d.getAddress(), (byte) 8,
+							Packet.TYPE_FILE_DECLINE, random.nextInt(), byteStreamOut.toByteArray());
+					TCPPacket tcpAcceptPacket = new TCPPacket(acceptPacket, seqNr, d.offerNr);
+					unackedPackets.put(tcpAcceptPacket, System.currentTimeMillis());
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

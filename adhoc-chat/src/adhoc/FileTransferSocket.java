@@ -28,7 +28,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 	private static final long PACKET_TIMEOUT = 500;
 	private static final long OFFER_TIMEOUT = 10000;
 	private static final int PACKET_SIZE = 1024; // bytes
-	private static final int PREF_WINDOWSIZE = 1024; // set by receiver
+	private static final int PREF_WINDOWSIZE = 512; // set by receiver
 
 	private AdhocSocket socket;
 

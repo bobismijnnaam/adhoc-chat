@@ -252,7 +252,7 @@ public class MainScreen {
 		} else {
 
 			newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
-					+ "</u></b></font><br /><font size=3>" + formatMessage(message)
+					+ "</u></b></font><br /><font size=3>" + formatMessage(message, file)
 					+ "</font><br /><font size=2><font color=white>" + timeStamp
 					+ "</font></font></font></body></html>", Color.decode(color1), Color.decode(color2));
 			newMessage.setName("file" + message);
@@ -275,8 +275,11 @@ public class MainScreen {
 	 * 
 	 * @return the formatted String
 	 */
-	private String formatMessage(String inputMessage) {
+	private String formatMessage(String inputMessage, boolean file) {
 		String formattedMessage = inputMessage;
+		if (file) {
+			formattedMessage = formattedMessage + " <u> Click to open</u>";
+		}
 		return formattedMessage;
 	}
 

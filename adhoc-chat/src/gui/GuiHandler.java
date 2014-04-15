@@ -1,6 +1,7 @@
 package gui;
 
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -10,7 +11,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -19,6 +24,7 @@ import java.util.HashMap;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 
@@ -101,7 +107,6 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 		GradientList list = new GradientList();
 		final GradientList.Gradient color = list.sendColor();
 		final long timestamp = System.currentTimeMillis();
-
 		// if in main screen and enter is pressed in an arbritrary text field
 		if (main && ((Component) e.getSource()).getName().contains("enter")) {
 			String[] messageParts = ((Component) e.getSource()).getName().split("enter");
@@ -133,8 +138,19 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 							System.out.println(fc.getSelectedFile());
 							if (!(fc.getSelectedFile() == null)) {
 
+								// store file local
 								String filename = fc.getSelectedFile().getName();
 								boolean isImage = isImage(filename);
+
+								try {
+									copy(fc.getSelectedFile(), new File(FileTransferSocket.FOLDER_RECEIVE + "/"
+											+ filename));
+								} catch (IOException e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+								}
+								System.out.println("stored file");
+
 								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
 										true, isImage);
 
@@ -151,6 +167,14 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 						}
 					});
 					fc.showOpenDialog(frame);
+				} else if (source.getName().contains("file")) {
+					String[] messageParts = ((Component) e.getSource()).getName().split("file");
+					try {
+						Desktop.getDesktop().open(new File(FileTransferSocket.FOLDER_RECEIVE + "/" + messageParts[1]));
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				} else {
 					mainScreen.changeChat(source.getName());
 				}
@@ -167,6 +191,9 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 	 */
 	public boolean isImage(String name) {
 		String[] parts = name.split("\\.");
+		if (parts.length != 2) {
+			return false;
+		}
 		String ext = parts[1];
 		String[] imgExt = { "png", "jpg", "jpeg", "gif" };
 		for (int x = 0; x < imgExt.length; x++) {
@@ -192,8 +219,10 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);
 			frame.remove(panel);
-			frame.setSize(0, 0);
-			frame.setSize(800, 700);
+			// frame.setSize(0, 0);
+			// frame.setSize(800, 700);
+			frame.revalidate();
+			frame.repaint();
 			main = true;
 
 			// create the groupchat panel
@@ -238,14 +267,16 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 			long timestamp, String message, boolean file, boolean img) {
 		// retrieve message from textfield in associated group if it's an
 		// outgoing message
-		if (!incoming)
+		if (!incoming) {
 			if (!file)
 				message = mainScreen.getMessage(group);
+		}
 		if (!message.equals("") && message.trim().length() > 0) {
 			if (!incoming) {
 				try {
 					// send message to group (or individual)
-					sendMessage(message, group);
+					if (!file)
+						sendMessage(message, group);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -257,11 +288,12 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 			String date = df.format(cal.getTime());
 			Message newMessage = mainScreen.addMessage(Util.makeHtmlSafe(message), username, color.color1,
 					color.color2, incoming, group, date, file, img);
+			mainScreen.addFileOpener(newMessage, this);
 			frame.pack();
 			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
-			// System.out.println(newMessage.getBounds());
+			System.out.println("new max y: " + (newMessage.getBounds().y + newMessage.getBounds().height + 10));
 			frame.pack();
-			mainScreen.scrollDown(group);
+			mainScreen.scrollDown(group, (newMessage.getBounds().y + newMessage.getBounds().height + 10));
 		}
 	}
 
@@ -346,11 +378,8 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 					System.out.println(message + username + dest);
 
 					mainScreen.addNotification(dest);
-
 					processMessage(dest, true, username, color, timestamp, message, false, false);
-					mainScreen.scrollDown(dest);
 				}
-
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -394,20 +423,44 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 
 	@Override
 	public void onReceiveDownloadOffer(Download downloadOffer) {
-		// fileTransferSocket.respondOffer(downloadOffer, true);
+		int n = JOptionPane.showConfirmDialog(frame, "Allow " + users.get(downloadOffer.getAddress())
+				+ " to send a file?", "File offer", JOptionPane.YES_NO_OPTION);
+		System.out.println(n);
+		if (n == 0) {
+			fileTransferSocket.respondOffer(downloadOffer, true);
+		} else {
+			fileTransferSocket.respondOffer(downloadOffer, false);
+		}
 	}
 
 	@Override
 	public void onFileTransferComplete(Download download) {
 		System.out.println(download.getTransferSpeed());
 		File file = new File(FileTransferSocket.FOLDER_RECEIVE + "/" + download.getFilename());
-		// processMessage(, incoming, username, color, timestamp, message, file,
-		// img)
+		boolean isImage = isImage(download.getFilename());
+		final long timestamp = System.currentTimeMillis();
+		processMessage(users.get(download.getAddress()), true, users.get(download.getAddress()),
+				colors.get(download.getAddress()), timestamp, download.getFilename(), true, isImage);
 	}
 
 	@Override
 	public void onOfferRejected(Download download) {
-		System.out.println("boooooo");
+		JOptionPane.showMessageDialog(frame, "Your offer to send " + download.getFilename() + " was declined.",
+				"Offer declined", JOptionPane.WARNING_MESSAGE);
+	}
+
+	public void copy(File src, File dst) throws IOException {
+		InputStream in = new FileInputStream(src);
+		OutputStream out = new FileOutputStream(dst);
+
+		// Transfer bytes from in to out
+		byte[] buf = new byte[1024];
+		int len;
+		while ((len = in.read(buf)) > 0) {
+			out.write(buf, 0, len);
+		}
+		in.close();
+		out.close();
 	}
 
 }

@@ -252,8 +252,8 @@ public class MainScreen {
 		} else {
 
 			newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
-					+ "</u></b></font><br /><font size=3><u>" + formatMessage(message)
-					+ "</u></font><br /><font size=2><font color=white>" + timeStamp
+					+ "</u></b></font><br /><font size=3>" + formatMessage(message)
+					+ "</font><br /><font size=2><font color=white>" + timeStamp
 					+ "</font></font></font></body></html>", Color.decode(color1), Color.decode(color2));
 			newMessage.setName("file" + message);
 		}

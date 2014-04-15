@@ -154,12 +154,13 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
 										true, isImage);
 
+								byte dest = addr.get(group);
+
 								// // // // // // // // // // // // // // // //
 								// // / // // // // // // // // // // // // //
 								try {
-									fileTransferSocket.makeOffer((byte) 1, fc.getSelectedFile().getAbsolutePath());
+									fileTransferSocket.makeOffer(dest, fc.getSelectedFile().getAbsolutePath());
 								} catch (Exception ex) {
-									System.out.println("nevermind!");
 									ex.printStackTrace();
 								}
 

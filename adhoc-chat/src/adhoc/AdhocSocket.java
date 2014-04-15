@@ -46,7 +46,7 @@ public class AdhocSocket implements Runnable {
 		AdhocListener ahListener = new AdhocListener() {
 			@Override
 			public void onReceive(Packet packet) {
-				if (packet.getType() == Packet.BROADCAST) {
+				if (packet.getType() == Packet.TYPE_BROADCAST) {
 					System.out.println("[UNIT TEST] Received broadcast");
 				} else {
 					System.out.println("[UNIT TEST] Received message: " + new String(packet.getData()));
@@ -117,7 +117,7 @@ public class AdhocSocket implements Runnable {
 						dataStream.writeUTF(name);
 						dataStream.write(key);
 
-						sendData(MULTICAST_ADDRESS, Packet.BROADCAST, byteStream.toByteArray());
+						sendData(MULTICAST_ADDRESS, Packet.TYPE_BROADCAST, byteStream.toByteArray());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -219,11 +219,11 @@ public class AdhocSocket implements Runnable {
 					hopCount--;
 					sendData(source, dest, hopCount, type, id, data);
 
-					if (type == Packet.BROADCAST) {
+					if (type == Packet.TYPE_BROADCAST) {
 						handleBroadcast(packet);
 					}
 
-					if (type == Packet.LEAVE) {
+					if (type == Packet.TYPE_LEAVE) {
 						Connection connection = getConnection(source);
 						connections.remove(connection);
 
@@ -335,7 +335,7 @@ public class AdhocSocket implements Runnable {
 		running = false;
 
 		try {
-			sendData(MULTICAST_ADDRESS, Packet.LEAVE, new byte[0]);
+			sendData(MULTICAST_ADDRESS, Packet.TYPE_LEAVE, new byte[0]);
 		} catch (IOException e) {
 		}
 

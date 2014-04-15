@@ -38,7 +38,7 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 	@Override
 	public void onReceive(Packet packet) {
-		if (packet.getType() != Packet.ACK) {
+		if (packet.getType() != Packet.TYPE_ACK) {
 			if (packet.getDestAddress() != AdhocSocket.MULTICAST_ADDRESS) {
 				try {
 					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -46,7 +46,7 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 					dataStream.writeInt(packet.getId());
 
-					socket.sendData(packet.getSourceAddress(), Packet.ACK, byteStream.toByteArray());
+					socket.sendData(packet.getSourceAddress(), Packet.TYPE_ACK, byteStream.toByteArray());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

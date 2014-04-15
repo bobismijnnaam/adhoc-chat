@@ -14,6 +14,7 @@ public class Packet {
 	public static final byte TYPE_FILE_OFFER = 5;
 	public static final byte TYPE_FILE_ACCEPT = 6;
 	public static final byte TYPE_FILE_ACK = 7;
+	public static final byte TYPE_FILE_DECLINE = 8;
 
 	private byte sourceAddress, destAddress, hopCount, type;
 	private byte[] data;

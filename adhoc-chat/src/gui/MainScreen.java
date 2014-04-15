@@ -252,8 +252,8 @@ public class MainScreen {
 		} else {
 
 			newMessage = new Message("<html><body><font color=#ffffdd><font size=4><b><u>" + username
-					+ "</u></b></font><br /><font size=3><u>" + formatMessage(message)
-					+ "</u></font><br /><font size=2><font color=white>" + timeStamp
+					+ "</u></b></font><br /><font size=3>" + formatMessage(message, file)
+					+ "</font><br /><font size=2><font color=white>" + timeStamp
 					+ "</font></font></font></body></html>", Color.decode(color1), Color.decode(color2));
 			newMessage.setName("file" + message);
 		}
@@ -275,8 +275,11 @@ public class MainScreen {
 	 * 
 	 * @return the formatted String
 	 */
-	private String formatMessage(String inputMessage) {
+	private String formatMessage(String inputMessage, boolean file) {
 		String formattedMessage = inputMessage;
+		if (file) {
+			formattedMessage = formattedMessage + " <u> Click to open</u>";
+		}
 		return formattedMessage;
 	}
 
@@ -320,8 +323,12 @@ public class MainScreen {
 		fileUpload.setContentAreaFilled(false);
 		fileUpload.setBorderPainted(false);
 		fileUpload.setBorder(null);
-		sendButton.add(fileUpload, "split 3, w 50px, h 50px");
-		sendButton.add(messageBox, "w 350px, h 45px");
+		if (name == "GroupChat") {
+			sendButton.add(messageBox, "split 2, w 400px, h 45px");
+		} else {
+			sendButton.add(fileUpload, "split 3, w 50px, h 50px");
+			sendButton.add(messageBox, "w 350px, h 45px");
+		}
 		actualSendButton.setName("send" + name);
 		actualSendButton.setMargin(new Insets(0, 0, 0, 0));
 		actualSendButton.setOpaque(false);

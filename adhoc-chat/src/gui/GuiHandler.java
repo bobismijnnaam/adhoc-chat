@@ -154,12 +154,13 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
 										true, isImage);
 
+								byte dest = addr.get(group);
+
 								// // // // // // // // // // // // // // // //
 								// // / // // // // // // // // // // // // //
 								try {
-									fileTransferSocket.makeOffer((byte) 1, fc.getSelectedFile().getAbsolutePath());
+									fileTransferSocket.makeOffer(dest, fc.getSelectedFile().getAbsolutePath());
 								} catch (Exception ex) {
-									System.out.println("nevermind!");
 									ex.printStackTrace();
 								}
 
@@ -214,7 +215,7 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 	 */
 	private void tryLogin(String username) {
 		// check username (longer than 3 characters only numbers and characters)
-		if (loginGUI.getUsername().matches("\\w{3,}+")) {
+		if (loginGUI.getUsername().matches("^\\w{3,10}+$")) {
 
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);
@@ -440,8 +441,10 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 		File file = new File(FileTransferSocket.FOLDER_RECEIVE + "/" + download.getFilename());
 		boolean isImage = isImage(download.getFilename());
 		final long timestamp = System.currentTimeMillis();
+		System.out.println("I received: " + download.getFilename() + " From: " + users.get(download.getAddress()));
 		processMessage(users.get(download.getAddress()), true, users.get(download.getAddress()),
-				colors.get(download.getAddress()), timestamp, download.getFilename(), true, isImage);
+				colors.get(users.get(download.getAddress())), timestamp, download.getFilename(), true, isImage);
+		mainScreen.addNotification(users.get(download.getAddress()));
 	}
 
 	@Override

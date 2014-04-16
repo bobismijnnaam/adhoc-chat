@@ -11,6 +11,9 @@ import java.util.Random;
 
 import adhoc.AdhocSocket.AdhocListener;
 
+/**
+ * Provides a way to reliably send data to a host.
+ */
 public class ReliableSocket implements AdhocListener, Runnable {
 	private static final long RESEND_TIME = 1000;
 
@@ -18,6 +21,10 @@ public class ReliableSocket implements AdhocListener, Runnable {
 
 	private Random random = new Random();
 
+	/**
+	 * Packets that are sent, but not yet acknowledged by their destination
+	 * host.
+	 */
 	private ArrayList<Packet> unackedPackets = new ArrayList<Packet>();
 	private HashMap<Packet, Long> resendTimes = new HashMap<Packet, Long>();
 
@@ -114,6 +121,10 @@ public class ReliableSocket implements AdhocListener, Runnable {
 		listeners.remove(listener);
 	}
 
+	/**
+	 * Sends the data in a reliable way, if the destination is not
+	 * AdhocSocket.MULTICAST_ADDRESS.
+	 */
 	public void send(byte dest, byte type, byte[] data) throws IOException {
 		Packet packet = new Packet(socket.getAddress(), dest, (byte) 8, type, random.nextInt(), data);
 

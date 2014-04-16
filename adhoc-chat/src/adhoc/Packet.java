@@ -16,10 +16,6 @@ public class Packet {
 	public static final byte TYPE_FILE_ACK = 7;
 	public static final byte TYPE_FILE_DECLINE = 8;
 
-	public static byte BROADCAST = 0;
-	public static byte ACK = 2;
-	public static byte LEAVE = 3;
-
 	private byte sourceAddress, destAddress, hopCount, type;
 	private byte[] data;
 	private int id;

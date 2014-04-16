@@ -142,9 +142,9 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 
 								// store file local
 								String filename = fc.getSelectedFile().getName();
-								if (fc.getSelectedFile().length() > 100000) {
+								if (fc.getSelectedFile().length() > 400000) {
 									JOptionPane.showMessageDialog(frame,
-											"Please pick a file with a size less then 100kb", "File to big",
+											"Please pick a file with a size less then 400kb", "File to big",
 											JOptionPane.WARNING_MESSAGE);
 								} else {
 									boolean isImage = isImage(filename);

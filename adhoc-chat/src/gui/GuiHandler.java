@@ -91,9 +91,10 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 			@Override
 			public void windowClosing(WindowEvent e) {
 				System.out.println("Closed");
-				if (main)
+				if (main) {
 					socket.close();
-				super.windowClosed(e);
+					super.windowClosed(e);
+				}
 			}
 		});
 	}
@@ -140,30 +141,33 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 
 								// store file local
 								String filename = fc.getSelectedFile().getName();
-								boolean isImage = isImage(filename);
+								if (fc.getSelectedFile().length() > 100000) {
+									JOptionPane.showMessageDialog(frame,
+											"Please pick a file with a size less then 100kb", "File to big",
+											JOptionPane.WARNING_MESSAGE);
+								} else {
+									boolean isImage = isImage(filename);
 
-								try {
-									copy(fc.getSelectedFile(), new File(FileTransferSocket.FOLDER_RECEIVE + "/"
-											+ filename));
-								} catch (IOException e1) {
-									// TODO Auto-generated catch block
-									e1.printStackTrace();
+									try {
+										copy(fc.getSelectedFile(), new File(FileTransferSocket.FOLDER_RECEIVE + "/"
+												+ filename));
+									} catch (IOException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									}
+									System.out.println("stored file");
+
+									processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
+											true, isImage);
+
+									byte dest = addr.get(group);
+
+									try {
+										fileTransferSocket.makeOffer(dest, fc.getSelectedFile().getAbsolutePath());
+									} catch (Exception ex) {
+										ex.printStackTrace();
+									}
 								}
-								System.out.println("stored file");
-
-								processMessage(group, false, mainScreen.getUsername(), color, timestamp, filename,
-										true, isImage);
-
-								byte dest = addr.get(group);
-
-								// // // // // // // // // // // // // // // //
-								// // / // // // // // // // // // // // // //
-								try {
-									fileTransferSocket.makeOffer(dest, fc.getSelectedFile().getAbsolutePath());
-								} catch (Exception ex) {
-									ex.printStackTrace();
-								}
-
 							}
 						}
 					});
@@ -220,8 +224,6 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 			// remove the login panel and go to the mainScreen
 			loginGUI.removeController(this);
 			frame.remove(panel);
-			// frame.setSize(0, 0);
-			// frame.setSize(800, 700);
 			frame.revalidate();
 			frame.repaint();
 			main = true;

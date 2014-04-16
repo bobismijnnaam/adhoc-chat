@@ -292,7 +292,8 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 			String date = df.format(cal.getTime());
 			Message newMessage = mainScreen.addMessage(Util.makeHtmlSafe(message), username, color.color1,
 					color.color2, incoming, group, date, file, img);
-			mainScreen.addFileOpener(newMessage, this);
+			if (file)
+				mainScreen.addFileOpener(newMessage, this);
 			frame.pack();
 			mainScreen.addSize(newMessage.getBounds().y + newMessage.getBounds().height, group);
 			System.out.println("new max y: " + (newMessage.getBounds().y + newMessage.getBounds().height + 10));

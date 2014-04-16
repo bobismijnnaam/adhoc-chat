@@ -1,39 +1,32 @@
 package adhoc;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.TreeMap;
 
 import adhoc.AdhocSocket.AdhocListener;
-import crypto.Crypto;
 
 public class FileTransferSocket implements AdhocListener, Runnable {
 
 	public static final String FOLDER_RECEIVE = "received";
 
 	private static final long PACKET_TIMEOUT = 500;
-	private static final long OFFER_TIMEOUT = 10000;
-	private static final int PACKET_SIZE = 1024; // bytes
+	static final long OFFER_TIMEOUT = 10000;
+	static final int PACKET_SIZE = 1024; // bytes
 	private static final int PREF_WINDOWSIZE = 512; // set by receiver
 
-	private AdhocSocket socket;
+	AdhocSocket socket;
 
-	private static Random random = new Random();
-	private int seqNr = random.nextInt();
+	static Random random = new Random();
+	int seqNr = random.nextInt();
 
 	private HashMap<TCPPacket, Long> unackedPackets = new HashMap<TCPPacket, Long>();
 
@@ -41,16 +34,9 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 	private List<FileTransferListener> listeners = new ArrayList<FileTransferListener>();
 
-	public static void main(String[] args) {
-		try {
-			FileTransferSocket sock = new FileTransferSocket(new AdhocSocket("willem" + random.nextInt(),
-					Crypto.INSTANCE.getMyKey()));
-			// sock.makeOffer((byte) 1, "SPACE.jpg");
-			//
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+	// downloads <downloadNr, dl>
+	private HashMap<Integer, Download> downloads = new HashMap<Integer, Download>();
+	private HashMap<Integer, Upload> uploads = new HashMap<Integer, Upload>();
 
 	public FileTransferSocket(AdhocSocket socket) {
 		this.socket = socket;
@@ -66,33 +52,31 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		File file = new File(filepath);
 		long sizeBytes = file.length();
 		String filename = file.getName();
-		int offerNr = random.nextInt();
+		int downloadNr = random.nextInt();
 
-		Download d = new Download(file.getAbsolutePath(), offerNr, sizeBytes, dstAddress);
+		Upload u = new Upload(filepath, downloadNr, sizeBytes, socket.getAddress(), dstAddress);
+
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 		DataOutputStream dataStream = new DataOutputStream(byteStream);
 
 		dataStream.writeInt(seqNr);
-		dataStream.writeInt(offerNr);
+		dataStream.writeInt(downloadNr);
 		dataStream.writeUTF(filename);
 		dataStream.writeLong(sizeBytes);
 
-		byte[] offerData = byteStream.toByteArray();
 		Packet innerpacket = new Packet(socket.getAddress(), dstAddress, (byte) 8, Packet.TYPE_FILE_OFFER,
-				random.nextInt(), offerData);
-		TCPPacket packet = new TCPPacket(innerpacket, seqNr, offerNr);
+				random.nextInt(), byteStream.toByteArray());
+		TCPPacket packet = new TCPPacket(innerpacket, seqNr++, downloadNr);
 
 		// add packet to queue
 		if (dstAddress != AdhocSocket.MULTICAST_ADDRESS) {
 			synchronized (downloads) {
-				downloads.put(d.offerNr, d);
+				uploads.put(u.getDownloadNr(), u);
 			}
 			synchronized (unackedPackets) {
 				unackedPackets.put(packet, System.currentTimeMillis());
 			}
 		}
-
-		seqNr++;
 	}
 
 	@Override
@@ -100,33 +84,33 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		try {
 			while (socket.isRunning()) {
 
-				if (mode == 1) {
-					// remove timed-out offers
-					synchronized (downloads) {
-						for (Iterator<Download> it = downloads.values().iterator(); it.hasNext();) {
-							Download dl = (Download) it.next();
-							if (!dl.hasStarted()) {
-								if (System.currentTimeMillis() >= dl.getTimeOut()) {
-									synchronized (unackedPackets) {
-										unackedPackets.remove(dl);
-									}
-									it.remove();
-									System.out.print("offer timed out; ");
-									// System.out.println("# of pending offers now: "
-									// + pendingOffers.size());
-								}
-							} else {
-								TCPPacket next = dl.getNextPacket();
+				// remove timed-out offers
+				synchronized (uploads) {
+					for (Iterator<Upload> it = uploads.values().iterator(); it.hasNext();) {
+						Upload upload = (Upload) it.next();
+						if (!upload.hasStarted()) {
+							// check for expired offers
+							if (System.currentTimeMillis() >= upload.getTimeout()) {
 								synchronized (unackedPackets) {
-									while (next != null) {
+									unackedPackets.remove(upload);
+								}
+								it.remove();
+								System.out.println("offer timed out; ");
+							}
+						} else {
+							while (true) {
+								TCPPacket next = upload.getNextPacket(seqNr);
+								if (next == null) {
+									break;
+								} else {
+									synchronized (unackedPackets) {
+										seqNr++;
 										unackedPackets.put(next, System.currentTimeMillis());
-										next = dl.getNextPacket();
 									}
 								}
-								// now window is full
-
 							}
 						}
+
 					}
 				}
 
@@ -143,186 +127,9 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 						}
 					}
 				}
-
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-		}
-	}
-
-	// receiver downloads <ordernr, dl>
-	private HashMap<Integer, Download> downloads = new HashMap<Integer, Download>();
-
-	public class Download {
-
-		// general
-		private String filename;
-		private int offerNr;
-		private long startTime;
-		private long sizeBytes;
-		private byte address; // destination if sending, source if downloading
-		private byte dstAddress;
-		private boolean hasStarted = false;
-
-		// receiving
-		private Map<Integer, byte[]> receivedPackets;
-
-		// sending
-		private long timeout;
-		private byte[][] buffer;
-		private int downloadSeqNr = 0;
-		private int windowSize;
-		private int nrOfAcksReceived;
-
-		public Download(String filename, int orderNr, long sizeBytes, byte otherAddress) {
-			this.filename = filename;
-			this.offerNr = orderNr;
-			this.sizeBytes = sizeBytes;
-			this.address = otherAddress;
-
-			timeout = System.currentTimeMillis() + OFFER_TIMEOUT;
-		}
-
-		public boolean hasStarted() {
-			return hasStarted;
-		}
-
-		public int getNumberOfPackets() {
-			return (int) Math.ceil((float) sizeBytes / (float) PACKET_SIZE);
-		}
-
-		public byte getAddress() {
-			return address;
-		}
-
-		public String getFilename() {
-			return filename;
-		}
-
-		public long getSizeBytes() {
-			return sizeBytes;
-		}
-
-		public long getTransferSpeed() { // Kbps
-			if (((System.currentTimeMillis() - startTime) / 1000) == 0) {
-				return Integer.MAX_VALUE; // infinity!!!
-			}
-			return (sizeBytes * 8 / 1000) / ((System.currentTimeMillis() - startTime) / 1000);
-		}
-
-		// receive specific below here
-		public void onStart() {
-			receivedPackets = new HashMap<Integer, byte[]>();
-			startTime = System.currentTimeMillis();
-			hasStarted = true;
-		}
-
-		public long getTimeOut() {
-			return timeout;
-		}
-
-		public boolean receiveData(int receivedDownloadSeqNr, byte[] receivedBuffer) {
-			if (receivedPackets.containsKey(receivedDownloadSeqNr)) {
-				return false;
-			}
-
-			receivedPackets.put(receivedDownloadSeqNr, receivedBuffer);
-			System.out.println(receivedPackets.size() + " of " + getNumberOfPackets()
-					+ " packets received! Packet size was: " + receivedBuffer.length);
-
-			if (getNumberOfPackets() == receivedPackets.size()) {
-				try {
-					System.out.println("DONE receivign!");
-					// done downloading, now sort and write to disk
-					Map<Integer, byte[]> sortedReceivedPackets = new TreeMap<Integer, byte[]>(receivedPackets);
-
-					File file = new File(FOLDER_RECEIVE + "/" + filename);
-					FileOutputStream fos = new FileOutputStream(file, false);
-
-					BufferedOutputStream bufStream = new BufferedOutputStream(fos);
-
-					for (Iterator<byte[]> it = sortedReceivedPackets.values().iterator(); it.hasNext();) {
-						byte[] bytes = (byte[]) it.next();
-						bufStream.write(bytes);
-					}
-					bufStream.flush();
-					bufStream.close();
-					return true;
-				} catch (IOException e) {
-					System.out.println("ERROR writing file to disk!");
-					e.printStackTrace();
-					return true;
-				}
-			} else {
-				return false;
-			}
-		}
-
-		// sending specific below here
-		private void begin(int windowSize) {
-			this.downloadSeqNr = 0;
-			this.windowSize = windowSize;
-			// this.acksReceived = 0;
-			BufferedInputStream bufStream = null;
-			try {
-				File file = new File(filename);
-				FileInputStream fis;
-				fis = new FileInputStream(file);
-				bufStream = new BufferedInputStream(fis);
-
-				// Load file seqmented into memory
-				buffer = new byte[getNumberOfPackets()][PACKET_SIZE];
-
-				int i = 0;
-				while (bufStream.available() > 0) {
-					byte[] toSend = new byte[Math.min(bufStream.available(), PACKET_SIZE)];
-					bufStream.read(toSend);
-					buffer[i++] = toSend;
-				}
-				bufStream.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			hasStarted = true;
-			startTime = System.currentTimeMillis();
-		}
-
-		private TCPPacket getNextPacket() {
-			if (downloadSeqNr < windowSize + nrOfAcksReceived && downloadSeqNr < getNumberOfPackets()) {
-
-				ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-				try {
-					DataOutputStream dataStream = new DataOutputStream(byteStream);
-					dataStream.writeInt(++seqNr);
-					dataStream.writeInt(offerNr);
-					dataStream.writeInt(downloadSeqNr);
-					dataStream.write(buffer[downloadSeqNr++]);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				System.out.println("Getting next packet data size = " + buffer[downloadSeqNr - 1].length);
-				return new TCPPacket(new Packet(socket.getAddress(), address, (byte) 8, Packet.TYPE_FILE,
-						random.nextInt(), byteStream.toByteArray()), seqNr, offerNr);
-			} else {
-				return null;
-			}
-		}
-
-		List<Integer> acksReceived = new ArrayList<Integer>();
-
-		// return if it's done downloading
-		private boolean receiveAck(int recDownloadSeqAckNr) {
-			if (!acksReceived.contains(recDownloadSeqAckNr)) {
-				acksReceived.add(recDownloadSeqAckNr);
-				nrOfAcksReceived++;
-				System.out.println("Nr of acks received " + nrOfAcksReceived + " of " + getNumberOfPackets());
-			}
-			if (nrOfAcksReceived == getNumberOfPackets()) {
-				return true;
-			} else {
-				return false;
-			}
 		}
 	}
 
@@ -336,25 +143,25 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		DataInputStream dataStreamIn = new DataInputStream(byteStreamIn);
 
 		int receivedSeqNr = 0; // my seqNr
-		int offerNr = -1;
+		int downloadNr = -1;
 		try {
 			receivedSeqNr = dataStreamIn.readInt();
-			offerNr = dataStreamIn.readInt();
+			downloadNr = dataStreamIn.readInt();
 		} catch (IOException e1) {
 			System.out.println("FTS: couldn't read all contents.");
 		}
 
-		TCPPacket tcpPacket = new TCPPacket(receivedPacket, receivedSeqNr, offerNr);
+		TCPPacket tcpPacket = new TCPPacket(receivedPacket, receivedSeqNr, downloadNr);
 
 		// 'offer accepted!'
-		if (tcpPacket.getType() == Packet.TYPE_FILE_ACCEPT && mode == 1) {
-			synchronized (downloads) {
+		if (downloadNr != -1 && tcpPacket.getType() == Packet.TYPE_FILE_ACCEPT) {
+			synchronized (uploads) {
 
-				Download download = downloads.get(tcpPacket.getOfferNr());
+				Upload upload = uploads.get(tcpPacket.getOfferNr());
 				try {
 					int windowSize = dataStreamIn.readInt();
-					if (download != null) {
-						download.begin(windowSize);
+					if (upload != null) {
+						upload.begin(windowSize);
 					} else {
 						System.out.println("Download offer not found/timed out");
 					}
@@ -365,13 +172,13 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		}
 
 		// 'offer rejected :( '
-		if (tcpPacket.getType() == Packet.TYPE_FILE_DECLINE && mode == 1) {
-			synchronized (downloads) {
+		if (downloadNr != -1 && tcpPacket.getType() == Packet.TYPE_FILE_DECLINE) {
+			synchronized (uploads) {
 
-				Download download = downloads.get(tcpPacket.getOfferNr());
-				if (download != null) {
+				Upload upload = uploads.get(tcpPacket.getOfferNr());
+				if (upload != null) {
 					for (FileTransferListener l : listeners) {
-						l.onOfferRejected(download);
+						l.onOfferRejected(upload);
 					}
 				} else {
 					System.out.println("Download offer not found/timed out");
@@ -380,37 +187,39 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 		}
 
 		// receive file data
-		if (tcpPacket.getType() == Packet.TYPE_FILE && mode == 0) {
+		if (downloadNr != -1 && tcpPacket.getType() == Packet.TYPE_FILE) {
 
 			try {
-				int receivedDownloadSeqNr = dataStreamIn.readInt();
-				byte[] receivedBuffer = new byte[dataStreamIn.available()];
-				dataStreamIn.read(receivedBuffer);
+				synchronized (downloads) {
 
-				Download download = downloads.get(offerNr);
-				boolean finished = download.receiveData(receivedDownloadSeqNr, receivedBuffer);
-				if (finished) {
-					mode = 0;
-					System.out.println("Finished Downloading file @ " + download.getTransferSpeed() + "Kb/s");
-					for (FileTransferListener l : listeners) {
-						l.onFileTransferComplete(download);
+					int receivedDownloadSeqNr = dataStreamIn.readInt();
+					byte[] receivedBuffer = new byte[dataStreamIn.available()];
+					dataStreamIn.read(receivedBuffer);
+
+					Download download = downloads.get(downloadNr);
+					boolean finished = download.receiveData(receivedDownloadSeqNr, receivedBuffer);
+					if (finished) {
+						Download success = downloads.remove(download);
+						System.out.println("COULD REMOVE DOWNLOAD ? " + success);
+						System.out.println("Finished Downloading file @ " + download.getTransferSpeed() + "Kb/s");
+						for (FileTransferListener l : listeners) {
+							l.onFileTransferComplete(download);
+						}
 					}
+
+					// return ack for filedata
+					ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
+					DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
+
+					dataStreamOut.writeInt(receivedSeqNr);
+					dataStreamOut.writeInt(downloadNr);
+					dataStreamOut.writeInt(receivedDownloadSeqNr);
+
+					Packet acket = new Packet(socket.getAddress(), tcpPacket.getSourceAddress(), (byte) 8,
+							Packet.TYPE_FILE_ACK, random.nextInt(), byteStreamOut.toByteArray());
+					socket.sendData(acket);
+
 				}
-
-				// return ack for filedata
-				ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
-				DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
-
-				dataStreamOut.writeInt(receivedSeqNr);
-				dataStreamOut.writeInt(offerNr);
-				dataStreamOut.writeInt(receivedDownloadSeqNr);
-
-				// System.out.println("sending back ACK for #" +
-				// tcpPacket.getSeqNr());
-				Packet acket = new Packet(socket.getAddress(), tcpPacket.getSourceAddress(), (byte) 8,
-						Packet.TYPE_FILE_ACK, random.nextInt(), byteStreamOut.toByteArray());
-				socket.sendData(acket);
-
 			} catch (IOException e) {
 				System.out.println("error");
 				e.printStackTrace();
@@ -418,24 +227,24 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 		}
 
-		// receive an file ACK
-		if (tcpPacket.getType() == Packet.TYPE_FILE_ACK && mode == 1) {
+		// receive an file ACK (REMOVE FROM unackedpackets and give to upload
+		// object
+		if (tcpPacket.getType() == Packet.TYPE_FILE_ACK) {
 			synchronized (unackedPackets) {
 				Long remove = unackedPackets.remove(tcpPacket);
 				if (remove != null) {
 					try {
-						int recDownloadSeqAckNr = dataStreamIn.readInt();
-						boolean finished = downloads.get(offerNr).receiveAck(recDownloadSeqAckNr);
-						if (finished) {
-							mode = 0;
-							System.out.println("Done uploading file!");
+						synchronized (uploads) {
+							int recDownloadSeqAckNr = dataStreamIn.readInt();
+							boolean finished = uploads.get(downloadNr).receiveAck(recDownloadSeqAckNr);
+							if (finished) {
+								System.out.println("Done uploading file!");
+							}
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				}
-				// System.out.println("receiving ack #" + receivedSeqNr +
-				// " Could remove it? = " + remove);
 			}
 		}
 
@@ -446,22 +255,17 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 			}
 		}
 
-		// return an ACK
-		if ((tcpPacket.getType() == Packet.TYPE_FILE_OFFER && mode == 0)
-				|| tcpPacket.getType() == Packet.TYPE_FILE_ACCEPT && mode == 1
-				|| tcpPacket.getType() == Packet.TYPE_FILE && mode == 0) {
+		// return an ACK for non file packets
+		if ((tcpPacket.getType() == Packet.TYPE_FILE_OFFER) || tcpPacket.getType() == Packet.TYPE_FILE_ACCEPT
+				|| tcpPacket.getType() == Packet.TYPE_FILE_DECLINE) {
 			try {
 				ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
 				DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
 
-				if (tcpPacket.getType() == Packet.TYPE_FILE_ACCEPT && mode == 1) {
-					dataStreamOut.writeInt(tcpPacket.getSeqNr() + 1);
-				} else {
-					dataStreamOut.writeInt(tcpPacket.getSeqNr());
-				}
+				dataStreamOut.writeInt(tcpPacket.getSeqNr());
 
-				if (offerNr != -1) {
-					dataStreamOut.writeInt(offerNr);
+				if (downloadNr != -1) {
+					dataStreamOut.writeInt(downloadNr);
 				}
 
 				// System.out.println("sending back ACK for #" +
@@ -481,9 +285,9 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 				String filename = dataStreamIn.readUTF();
 				long sizeBytes = dataStreamIn.readLong();
 
-				Download d = new Download(filename, offerNr, sizeBytes, tcpPacket.getSourceAddress());
-				// listeners....
-				downloads.put(d.offerNr, d);
+				Download d = new Download(filename, downloadNr, sizeBytes, tcpPacket.getSourceAddress(),
+						socket.getAddress());
+				downloads.put(d.getDownloadNr(), d);
 
 				for (FileTransferListener l : listeners) {
 					l.onReceiveDownloadOffer(d);
@@ -510,15 +314,15 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 				ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
 				DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
 
-				dataStreamOut.writeInt(seqNr++);
-				dataStreamOut.writeInt(d.offerNr);
+				dataStreamOut.writeInt(seqNr);
+				dataStreamOut.writeInt(d.getDownloadNr());
 				int preferredWindowSize = PREF_WINDOWSIZE;
 				dataStreamOut.writeInt(preferredWindowSize);
 
 				synchronized (unackedPackets) {
 					Packet acceptPacket = new Packet(socket.getAddress(), d.getAddress(), (byte) 8,
 							Packet.TYPE_FILE_ACCEPT, random.nextInt(), byteStreamOut.toByteArray());
-					TCPPacket tcpAcceptPacket = new TCPPacket(acceptPacket, seqNr, d.offerNr);
+					TCPPacket tcpAcceptPacket = new TCPPacket(acceptPacket, seqNr++, d.getDownloadNr());
 					unackedPackets.put(tcpAcceptPacket, System.currentTimeMillis());
 				}
 
@@ -532,14 +336,19 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 				ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
 				DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
 
-				dataStreamOut.writeInt(seqNr++);
-				dataStreamOut.writeInt(d.offerNr);
+				dataStreamOut.writeInt(seqNr);
+				dataStreamOut.writeInt(d.getDownloadNr());
 
 				synchronized (unackedPackets) {
 					Packet acceptPacket = new Packet(socket.getAddress(), d.getAddress(), (byte) 8,
 							Packet.TYPE_FILE_DECLINE, random.nextInt(), byteStreamOut.toByteArray());
-					TCPPacket tcpAcceptPacket = new TCPPacket(acceptPacket, seqNr, d.offerNr);
+					TCPPacket tcpAcceptPacket = new TCPPacket(acceptPacket, seqNr++, d.getDownloadNr());
 					unackedPackets.put(tcpAcceptPacket, System.currentTimeMillis());
+				}
+
+				synchronized (downloads) {
+					Download success = downloads.remove(d);
+					System.out.println("Rejected, and could remove success? " + success);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -560,7 +369,7 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 
 		public void onFileTransferComplete(Download download);
 
-		public void onOfferRejected(Download download); // or timed-out
+		public void onOfferRejected(Upload upload); // or timed-out
 	}
 
 	public void addListener(FileTransferListener l) {

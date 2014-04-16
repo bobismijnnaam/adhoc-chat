@@ -33,11 +33,12 @@ import util.Util;
 import adhoc.AdhocSocket;
 import adhoc.AdhocSocket.AdhocListener;
 import adhoc.Connection;
+import adhoc.Download;
 import adhoc.FileTransferSocket;
-import adhoc.FileTransferSocket.Download;
 import adhoc.FileTransferSocket.FileTransferListener;
 import adhoc.Packet;
 import adhoc.ReliableSocket;
+import adhoc.Upload;
 import crypto.Crypto;
 
 //github.com/bobismijnnaam/adhoc-chat.git
@@ -450,8 +451,8 @@ public class GuiHandler implements ActionListener, AdhocListener, FileTransferLi
 	}
 
 	@Override
-	public void onOfferRejected(Download download) {
-		JOptionPane.showMessageDialog(frame, "Your offer to send " + download.getFilename() + " was declined.",
+	public void onOfferRejected(Upload upload) {
+		JOptionPane.showMessageDialog(frame, "Your offer to send " + upload.getFilename() + " was declined.",
 				"Offer declined", JOptionPane.WARNING_MESSAGE);
 	}
 

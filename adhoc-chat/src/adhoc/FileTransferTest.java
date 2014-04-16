@@ -3,7 +3,6 @@ package adhoc;
 import java.io.IOException;
 import java.util.Random;
 
-import adhoc.FileTransferSocket.Download;
 import adhoc.FileTransferSocket.FileTransferListener;
 import crypto.Crypto;
 
@@ -18,8 +17,8 @@ public class FileTransferTest implements FileTransferListener {
 
 	public FileTransferTest() {
 		try {
-			socket = new FileTransferSocket(new AdhocSocket("sdfadam" + new Random().nextInt(),
-					Crypto.INSTANCE.getMyKey()));
+			socket = new FileTransferSocket(
+					new AdhocSocket("wiii" + new Random().nextInt(), Crypto.INSTANCE.getMyKey()));
 			socket.addListener(this);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -50,8 +49,9 @@ public class FileTransferTest implements FileTransferListener {
 	}
 
 	@Override
-	public void onOfferRejected(Download download) {
-		System.out.println("offer rejected/timed-out");
+	public void onOfferRejected(Upload upload) {
+		System.out.println(" :((( ");
+
 	}
 
 }

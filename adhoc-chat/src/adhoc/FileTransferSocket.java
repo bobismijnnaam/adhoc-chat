@@ -197,28 +197,29 @@ public class FileTransferSocket implements AdhocListener, Runnable {
 					dataStreamIn.read(receivedBuffer);
 
 					Download download = downloads.get(downloadNr);
-					boolean finished = download.receiveData(receivedDownloadSeqNr, receivedBuffer);
-					if (finished) {
-						Download success = downloads.remove(download);
-						System.out.println("COULD REMOVE DOWNLOAD ? " + success);
-						System.out.println("Finished Downloading file @ " + download.getTransferSpeed() + "Kb/s");
-						for (FileTransferListener l : listeners) {
-							l.onFileTransferComplete(download);
+					if (download != null) {
+						boolean finished = download.receiveData(receivedDownloadSeqNr, receivedBuffer);
+						if (finished) {
+							Download success = downloads.remove(download);
+							System.out.println("COULD REMOVE DOWNLOAD ? " + success);
+							System.out.println("Finished Downloading file @ " + download.getTransferSpeed() + "Kb/s");
+							for (FileTransferListener l : listeners) {
+								l.onFileTransferComplete(download);
+							}
 						}
+
+						// return ack for filedata
+						ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
+						DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
+
+						dataStreamOut.writeInt(receivedSeqNr);
+						dataStreamOut.writeInt(downloadNr);
+						dataStreamOut.writeInt(receivedDownloadSeqNr);
+
+						Packet acket = new Packet(socket.getAddress(), tcpPacket.getSourceAddress(), (byte) 8,
+								Packet.TYPE_FILE_ACK, random.nextInt(), byteStreamOut.toByteArray());
+						socket.sendData(acket);
 					}
-
-					// return ack for filedata
-					ByteArrayOutputStream byteStreamOut = new ByteArrayOutputStream();
-					DataOutputStream dataStreamOut = new DataOutputStream(byteStreamOut);
-
-					dataStreamOut.writeInt(receivedSeqNr);
-					dataStreamOut.writeInt(downloadNr);
-					dataStreamOut.writeInt(receivedDownloadSeqNr);
-
-					Packet acket = new Packet(socket.getAddress(), tcpPacket.getSourceAddress(), (byte) 8,
-							Packet.TYPE_FILE_ACK, random.nextInt(), byteStreamOut.toByteArray());
-					socket.sendData(acket);
-
 				}
 			} catch (IOException e) {
 				System.out.println("error");

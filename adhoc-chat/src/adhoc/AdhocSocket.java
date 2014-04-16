@@ -14,13 +14,29 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Random;
 
+/**
+ * Provides a way to send data to a particular host, or everyone in the network.
+ * There is no guarantee that the packet will reach its destination.
+ */
 public class AdhocSocket implements Runnable {
 	private static final String ADDRESS = "226.1.2.3";
 	private static final int PORT = 4001;
-	protected static final long BROADCAST_TIME = 1000;
 
+	/**
+	 * Time in milliseconds between broadcasts.
+	 */
+	private static final long BROADCAST_TIME = 1000;
+
+	/**
+	 * Address that should be given when the packet should reach everyone in the
+	 * network.
+	 */
 	public static final byte MULTICAST_ADDRESS = -1;
 
+	/**
+	 * If no broadcast is received from a host for more than TIMEOUT
+	 * milliseconds the host is considered disconnected.
+	 */
 	protected static final long TIMEOUT = 10000;
 
 	private MulticastSocket socket;
@@ -323,6 +339,9 @@ public class AdhocSocket implements Runnable {
 		listeners.remove(listener);
 	}
 
+	/**
+	 * @return - The address of this host in the network.
+	 */
 	public byte getAddress() {
 		return address;
 	}
@@ -343,10 +362,21 @@ public class AdhocSocket implements Runnable {
 	}
 
 	public interface AdhocListener {
+		/**
+		 * Called when a packet is received that is destined for this host,
+		 * meaning that the destination address is either socket.getAddress() of
+		 * MULTICAST_ADDRESS.
+		 */
 		public void onReceive(Packet packet);
 
+		/**
+		 * Called when a new host is discovered in the network.
+		 */
 		public void newConnection(Connection connection);
 
+		/**
+		 * Called when either a host times out or it send a leave packet.
+		 */
 		public void removedConnection(Connection connection);
 	}
 }

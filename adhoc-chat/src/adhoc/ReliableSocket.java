@@ -77,8 +77,7 @@ public class ReliableSocket implements AdhocListener, Runnable {
 							break;
 						}
 					}
-				}
-				synchronized (unackedPackets) {
+
 					unackedPackets.remove(ackedPacket);
 					resendTimes.remove(ackedPacket);
 				}
